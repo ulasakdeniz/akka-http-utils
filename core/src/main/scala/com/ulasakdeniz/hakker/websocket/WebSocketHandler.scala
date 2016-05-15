@@ -1,4 +1,4 @@
-package com.ulasakdeniz.framework.websocket
+package com.ulasakdeniz.hakker.websocket
 
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.ws.Message

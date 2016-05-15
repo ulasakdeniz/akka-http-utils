@@ -1,4 +1,4 @@
-package com.ulasakdeniz.framework.db
+package com.ulasakdeniz.hakker.db
 
 import akka.persistence.{PersistentActor, RecoveryCompleted}
 

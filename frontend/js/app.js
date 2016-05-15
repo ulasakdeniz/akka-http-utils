@@ -1,7 +1,7 @@
 'use strict';
 
 (function () {
-    var ws = new WebSocket('ws://localhost:8080/socket');
+    var ws = new WebSocket('ws://localhost:9000/socket');
     ws.onmessage = function(event) {
         var input = JSON.parse(event.data);
         console.log(input);

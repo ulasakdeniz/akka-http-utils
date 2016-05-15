@@ -1,4 +1,4 @@
-package com.ulasakdeniz.framework
+package com.ulasakdeniz.hakker
 
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives.{get, path, complete}
@@ -9,7 +9,7 @@ import org.scalatest.{Matchers, WordSpec}
 
 class RouteHandlerSpec extends WordSpec with Matchers with MockitoSugar with ScalatestRouteTest {
 
-  val routes = testRouteHandler()
+  val routes = RoutesTest()
 
   "routes" should {
     "return index.html for GET request to the root path" in {
@@ -34,7 +34,7 @@ class RouteHandlerSpec extends WordSpec with Matchers with MockitoSugar with Sca
     }
   }
 
-  object testRouteHandler extends RouteHandler {
+  object RoutesTest extends Routes {
     override def route: Route = {
       get {
         path("aPath") {

@@ -1,4 +1,4 @@
-package com.ulasakdeniz.framework.template
+package com.ulasakdeniz.hakker.template
 
 import akka.http.scaladsl.server.Directives.{getFromDirectory, getFromFile}
 
