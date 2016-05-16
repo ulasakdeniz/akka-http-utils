@@ -1,21 +1,22 @@
 package com.ulasakdeniz.hakker
 
-import akka.event.LoggingAdapter
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteResult}
-import com.typesafe.config.Config
 
-trait AbstractServer extends System with Logger {
+import scala.util.Try
 
-  val log: LoggingAdapter
+trait AbstractServer extends System with Logger[AbstractServer] {
+
   val exceptionHandler: ExceptionHandler
 
-  def run(routeHandler: Routes) = {
-    val routes: Route = handleExceptions(exceptionHandler)(routeHandler())
+  def run(routeHandler: Route) = {
+    val interface: String = Try(config.getString("interface")).getOrElse("localhost")
+    val port: Int = Try(config.getInt("port")).getOrElse(8080)
+
+    val routes: Route = handleExceptions(exceptionHandler)(routeHandler)
     val bindingFuture = http.bindAndHandle(RouteResult.route2HandlerFlow(routes), interface, port)
 
-    println(s"Server online at http://$interface:$port/")
+    log.info("Server online at http://{}:{}", interface, port)
 
     bindingFuture
       .map(binding => {
@@ -27,23 +28,5 @@ trait AbstractServer extends System with Logger {
       system.terminate()
       log.info("Actor System terminated")
     }
-  }
-}
-
-class Server(configOpt: Option[Config] = None) extends AbstractServer {
-
-  override val log: LoggingAdapter = logger(this, "Server")
-
-  override def config: Config =
-    configOpt.map(cfg => cfg.getConfig("server")
-      .withFallback(defaultConfig))
-      .getOrElse(defaultConfig)
-
-  override val exceptionHandler: ExceptionHandler = ExceptionHandler {
-    case _: Exception =>
-      extractUri { uri =>
-        println(s"Request to $uri could not be handled normally")
-        complete(InternalServerError)
-      }
   }
 }

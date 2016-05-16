@@ -9,6 +9,7 @@ val commonSettings = Seq(
   version := "1.0",
   scalaVersion := "2.11.8",
   publishMavenStyle := true,
+  parallelExecution in Test := false,
   publishArtifact in Test := false,
   scalacOptions := Seq("-unchecked", "-encoding", "utf8"),
   libraryDependencies ++= Seq(
@@ -25,7 +26,6 @@ val commonSettings = Seq(
   )
 )
 
-//TODO: remove sample from aggregate?
 lazy val root = Project(projectName, file("."))
   .settings(commonSettings: _*)
   .settings(publishArtifact := false)

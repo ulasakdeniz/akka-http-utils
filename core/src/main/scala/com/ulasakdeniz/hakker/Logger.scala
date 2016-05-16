@@ -3,14 +3,17 @@ package com.ulasakdeniz.hakker
 import akka.actor.ActorSystem
 import akka.event.{LogSource, Logging, LoggingAdapter}
 
-trait Logger {
+trait Logger[T] { self: T =>
 
   val system: ActorSystem
 
-  def logger[T](cls: T, tag: String): LoggingAdapter = {
-    implicit val logSource = new LogSource[T] {
-      override def genString(t: T): String = tag
-    }
-    Logging(system, cls)
+  implicit val logSource: LogSource[T] = new LogSource[T] {
+    override def genString(t: T): String = self.getClass.getSimpleName
   }
+
+  def logger(implicit logSource: LogSource[T]): LoggingAdapter = {
+    Logging(system, self)
+  }
+
+  lazy val log = logger
 }

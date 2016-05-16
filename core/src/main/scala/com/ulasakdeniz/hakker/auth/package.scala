@@ -15,6 +15,6 @@ package object auth {
 
     final case class CallbackFailed(httpResponse: HttpResponse) extends OAuthFailedResponse
     final case class AuthenticationFailed(httpResponse: HttpResponse) extends OAuthFailedResponse
-    final case class TokenParseFailed(httpResponse: HttpResponse) extends OAuthFailedResponse
+    final case class TokenFailed(httpResponse: HttpResponse) extends OAuthFailedResponse
   }
 }

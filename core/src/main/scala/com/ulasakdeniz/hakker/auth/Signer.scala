@@ -4,7 +4,9 @@ import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-object Signer {
+object Signer extends Signer
+
+abstract class Signer {
 
   // https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters
   val reservedCharEncoding: Map[Char, String] = Map(
@@ -26,25 +28,33 @@ object Signer {
                         params: List[(String, String)],
                         consumerSecret: String,
                         oAuthTokenSecret: Option[String] = None): String = {
-    val normalizedHeaderParams = normalizeParameters(params)
+    val normalizedHeaderParams = normalizeEncodeParameters(params)
     val signingKey = s"${encode(consumerSecret)}&${oAuthTokenSecret.getOrElse("")}"
     val baseString = s"${httpMethod.toUpperCase}&${encode(uri)}&$normalizedHeaderParams"
-    encode(hmacSha1(signingKey, baseString))
+    encode(hmac(signingKey, baseString))
   }
 
-  def normalizeParameters(params: List[(String, String)]): String = {
+  def normalizeEncodeParameters(params: List[(String, String)]): String = {
     val sorted: List[(String, String)] = params.sortBy(t => t)
     sorted.map(t => s"${encode(t._1)}%3D${encode(t._2)}").mkString("%26")
   }
 
-  // intentionally left
-  def hmacSha1(key: String, baseString: String): String = {
-    val HmacSHA1 = "HmacSHA1"
-    val secretKeySpec = new SecretKeySpec(key.getBytes, HmacSHA1)
-    val mac = Mac.getInstance(HmacSHA1)
+  def hmac(key: String, baseString: String, algorithm: MACAlgorithm = SHA1): String = {
+    val secretKeySpec = new SecretKeySpec(key.getBytes, algorithm.value)
+    val mac = Mac.getInstance(algorithm.value)
     mac.init(secretKeySpec)
     val calculatedValue = mac.doFinal(baseString.getBytes)
     val base64encoded = Base64.getEncoder.encode(calculatedValue)
     new String(base64encoded, "UTF-8")
   }
+}
+
+sealed trait MACAlgorithm {
+  val value: String
+}
+case object SHA1 extends MACAlgorithm {
+  override val value: String = "HmacSHA1"
+}
+case object MD5 extends MACAlgorithm {
+  override val value: String = "HmacMD5"
 }

@@ -7,15 +7,14 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult.Complete
 import akka.http.scaladsl.server._
 import com.typesafe.config.ConfigFactory
-import com.ulasakdeniz.hakker.Routes
+import com.ulasakdeniz.hakker.Controller
 import com.ulasakdeniz.hakker.auth.{OAuth1, OAuthResponse}
-import com.ulasakdeniz.hakker.template.render
 import com.ulasakdeniz.hakker.websocket.WebSocketHandler
 
 import scala.concurrent.Future
 import scala.collection.immutable.Seq
 
-object AppRoutes extends Routes {
+object Application extends Controller {
 
   lazy val webSocketHandler = new WebSocketHandler
 
@@ -66,12 +65,13 @@ object AppRoutes extends Routes {
           parameters('oauth_token, 'oauth_verifier) {
             (oauth_token, oauth_verifier) => ctx =>
               if(oauth_token == cache(OAuth1.token)) {
+                println(s"OAUTH_TOKEN: $oauth_token\nOAUTH_VERIFIER: $oauth_verifier")
                 val accessTokenUri = "https://api.twitter.com/oauth/access_token"
                 val verificationUri = "https://api.twitter.com/1.1/account/verify_credentials.json"
+                cache = cache + (OAuth1.verifier -> oauth_verifier)
                 val oAuthResponseF = oAuth1.accessToken(cache, accessTokenUri)
                 val response: Future[RouteResult] = oAuthResponseF.flatMap{
                   case OAuthResponse.AccessTokenSuccess(tokens) => {
-                    cache = cache + (OAuth1.verifier -> oauth_verifier)
                     cache = cache ++ tokens
                     val request = HttpRequest(
                       method = HttpMethods.POST,
@@ -85,9 +85,10 @@ object AppRoutes extends Routes {
                       }
                     }(ec)
                   }
-                  case _ => Future.successful{
+                  case OAuthResponse.AuthenticationFailed(hr) => Future.successful{
                     Complete(
-                      HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
+//                      HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
+                      hr
                     )
                   }
                 }(ec)

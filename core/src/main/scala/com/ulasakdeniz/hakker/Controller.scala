@@ -5,10 +5,10 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import spray.json._
-import template.render
+import template.Render
 
-trait Routes extends System with DefaultJsonProtocol with Logger {
-  private val log = logger(this, "RouteHandler")
+trait Controller extends System with Render with DefaultJsonProtocol {
+
   val StatusCodes = akka.http.scaladsl.model.StatusCodes
 
   //TODO: https://github.com/softwaremill/akka-http-session ???
@@ -19,7 +19,7 @@ trait Routes extends System with DefaultJsonProtocol with Logger {
     get {
         // render frontend files
         pathPrefix("js") {
-          render.directory("js")
+          renderDir("js")
         }
     } ~ route
   }

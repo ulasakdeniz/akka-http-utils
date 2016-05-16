@@ -37,9 +37,11 @@ class OAuth1(consumerSecret: String)(implicit http: HttpExt) {
             )
             RedirectionSuccess(redirectResponse, tokens)
           }
-          else TokenParseFailed(hr)
+          else {
+            TokenFailed(hr)
+          }
         }
-        oAuthResponseOpt.getOrElse(TokenParseFailed(hr))
+        oAuthResponseOpt.getOrElse(TokenFailed(hr))
       }
       case hr => {
         AuthenticationFailed(hr)
@@ -52,6 +54,7 @@ class OAuth1(consumerSecret: String)(implicit http: HttpExt) {
     val request = httpRequestForAccessToken(params, uri)
     val response: Future[HttpResponse] = http.singleRequest(request)
 
+    // TODO: implement a HttpEntity.Default case!
     response.map{
       case hr@HttpResponse(StatusCodes.OK, _, entity: HttpEntity.Strict, _) => {
         val responseTokenOpt = parseResponseTokens(entity.data)
@@ -61,6 +64,9 @@ class OAuth1(consumerSecret: String)(implicit http: HttpExt) {
           _: String <- tokens.get(OAuth1.token_secret)
         } yield AccessTokenSuccess(tokens)
         oAuthResponseOpt.getOrElse(AuthenticationFailed(hr))
+      }
+      case hr@HttpResponse(StatusCodes.Unauthorized, _, entity, _) => {
+        AuthenticationFailed(hr)
       }
       case hr => {
         AuthenticationFailed(hr)

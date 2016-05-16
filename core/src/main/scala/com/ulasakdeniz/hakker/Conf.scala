@@ -2,12 +2,12 @@ package com.ulasakdeniz.hakker
 
 import com.typesafe.config.{Config, ConfigFactory}
 
+object Conf extends Conf
+
 trait Conf {
+  val configName = "hakker"
 
-  val defaultConfig = ConfigFactory.load("server").getConfig("server")
-  def config: Config = defaultConfig
-
-  //TODO: should throw exception in the test
-  lazy val interface = config.getString("interface")
-  lazy val port = config.getInt("port")
+  // TODO: fix
+  val config: Config = ConfigFactory.load(configName).getConfig(configName)
+  lazy val defaultConfig = ConfigFactory.load(configName).getConfig(configName)
 }
