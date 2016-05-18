@@ -1,6 +1,6 @@
 val projectName = "hakker"
 
-val akkaVersion = "2.4.4"
+val akkaVersion = "2.4.5"
 val scalaTestVersion = "2.2.6"
 
 val commonSettings = Seq(
