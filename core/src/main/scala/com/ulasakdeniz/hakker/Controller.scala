@@ -24,7 +24,7 @@ trait Controller extends System with Render with DefaultJsonProtocol {
     } ~ route
   }
 
-  def jsonResponse[T](statusCode: StatusCode, body: T)(implicit jsFormat: RootJsonFormat[T]): Route = {
+  def jsonResponse[T](statusCode: StatusCode = StatusCodes.OK, body: T)(implicit jsFormat: RootJsonFormat[T]): Route = {
     import SprayJsonSupport.sprayJsonMarshaller
     val response = (statusCode, body)
     complete(response)

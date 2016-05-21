@@ -8,10 +8,11 @@ import akka.http.scaladsl.server.RouteResult.Complete
 import akka.http.scaladsl.server._
 import com.typesafe.config.ConfigFactory
 import com.ulasakdeniz.hakker.Controller
-import com.ulasakdeniz.hakker.auth.{OAuth1, OAuthResponse}
+import com.ulasakdeniz.hakker.auth.{AuthenticationHeader, OAuth1, OAuthResponse}
 import com.ulasakdeniz.hakker.websocket.WebSocketHandler
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.immutable.Seq
 
 object Application extends Controller {
@@ -22,7 +23,10 @@ object Application extends Controller {
   // throws exception if these keys are missing
   val twitterConsumerSecret = conf.getString("TwitterConsumerSecret")
   val twitterConsumerKey = conf.getString("TwitterConsumerKey")
-  val oAuth1 = new OAuth1(twitterConsumerSecret)(http)
+  val accessTokenUri = conf.getString("TwitterAccessTokenUri")
+  val verificationUri = conf.getString("TwitterUserDataUri")
+
+  val oAuth1 = new OAuth1(twitterConsumerSecret)(http, mat)
 
   var cache: Map[String, String] = Map.empty
 
@@ -50,48 +54,42 @@ object Application extends Controller {
           val response: Future[RouteResult] = oAuthResponseF.map{
             case OAuthResponse.RedirectionSuccess(httpResponse, tokens) => {
               cache = cache ++ tokens
+              println(s"CACHE_AFTER_REQUEST_RESPONSE: $cache")
               RouteResult.Complete(httpResponse)
             }
             case _ => {
-              println("DIGER CASE :/")
+              println("TWITTER_RESPONSE_NOT_OK")
               RouteResult.Complete(
                 HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
               )
             }
-          }(ec)
+          }
           response
         } ~
         path("callback") {
           parameters('oauth_token, 'oauth_verifier) {
             (oauth_token, oauth_verifier) => ctx =>
+
               if(oauth_token == cache(OAuth1.token)) {
-                println(s"OAUTH_TOKEN: $oauth_token\nOAUTH_VERIFIER: $oauth_verifier")
-                val accessTokenUri = "https://api.twitter.com/oauth/access_token"
-                val verificationUri = "https://api.twitter.com/1.1/account/verify_credentials.json"
                 cache = cache + (OAuth1.verifier -> oauth_verifier)
+
                 val oAuthResponseF = oAuth1.accessToken(cache, accessTokenUri)
+
                 val response: Future[RouteResult] = oAuthResponseF.flatMap{
                   case OAuthResponse.AccessTokenSuccess(tokens) => {
-                    cache = cache ++ tokens
-                    val request = HttpRequest(
-                      method = HttpMethods.POST,
-                      uri = verificationUri,
-                      headers = Seq(Authorization(GenericHttpCredentials("OAuth", cache)))
-                    )
-                    val userDataResponse: Future[HttpResponse] = http.singleRequest(request)(mat)
-                    userDataResponse.map{
-                      case hr@HttpResponse(StatusCodes.OK, _, entity: HttpEntity.Strict, _) => {
-                        Complete(hr)
-                      }
-                    }(ec)
+                    getUserTwitterData(tokens)
                   }
                   case OAuthResponse.AuthenticationFailed(hr) => Future.successful{
                     Complete(
-//                      HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
-                      hr
+                      HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
                     )
                   }
-                }(ec)
+                  case _ => {
+                    Future.successful{
+                      Complete(HttpResponse(StatusCodes.Unauthorized, entity = "Other case"))
+                    }
+                  }
+                }
                 response
               }
               else {
@@ -101,6 +99,35 @@ object Application extends Controller {
               }
           }
         }
+    }
+  }
+
+  def getUserTwitterData(tokens: Map[String, String]): Future[RouteResult] = {
+    val tokenTuple: Option[(String, String)] = for {
+      token <- tokens.get(OAuth1.token)
+      tokenSecret <- tokens.get(OAuth1.token_secret)
+    } yield (token, tokenSecret)
+
+    val params = AuthenticationHeader(
+      "GET", verificationUri, twitterConsumerKey, twitterConsumerSecret, tokenTuple
+    )
+    val headerParamsForRequest = OAuth1.headerParams(params)
+
+    val request = HttpRequest(
+      method = HttpMethods.GET,
+      uri = verificationUri,
+      headers = Seq(Authorization(GenericHttpCredentials("OAuth", headerParamsForRequest)))
+    )
+    val userDataResponse: Future[HttpResponse] = http.singleRequest(request)(mat)
+    userDataResponse.map{
+      case hr@HttpResponse(StatusCodes.OK, _, entity, _) => {
+        println("CALL_BACK_RESPONSE_OK")
+        Complete(HttpResponse(entity = entity))
+      }
+      case hr => {
+        println("CALL_BACK_RESPONSE_NOT_OK")
+        Complete(hr)
+      }
     }
   }
 }

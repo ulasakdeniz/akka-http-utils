@@ -6,47 +6,61 @@ import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import OAuthResponse._
+import akka.stream.scaladsl.{Flow, Keep, RunnableGraph, Sink, Source}
 
 import scala.concurrent.Future
 import scala.util.{Random, Try}
 import scala.collection.immutable.Seq
 
-class OAuth1(consumerSecret: String)(implicit http: HttpExt) {
+class OAuth1(consumerSecret: String)(implicit http: HttpExt, mat: ActorMaterializer) {
+
+  def runGraph(source: Source[ByteString, _],
+               flow: Flow[ByteString, OAuthResponse, _]): Future[OAuthResponse] = {
+    val graph: RunnableGraph[Future[OAuthResponse]] = source
+      .via(flow)
+      .toMat(Sink.head[OAuthResponse])(Keep.right)
+    graph.run()
+  }
 
   def requestToken(consumerKey: String,
                    requestUri: String,
-                   redirectUri: String)
-                  (implicit mat: ActorMaterializer): Future[OAuthResponse] = {
+                   redirectUri: String): Future[OAuthResponse] = {
     val oAuthRequest: HttpRequest = httpRequestForRequestToken(consumerKey, requestUri)
     val response: Future[HttpResponse] = http.singleRequest(oAuthRequest)
 
     // TODO: recover responses
-    response.map{
-      case hr@HttpResponse(StatusCodes.OK, _, entity: HttpEntity.Strict, _) => {
-        val responseTokenOpt = parseResponseTokens(entity.data)
-        val oAuthResponseOpt = for {
-          tokens: Map[String, String] <- responseTokenOpt
-          isCallbackConfirmed: String <- tokens.get(OAuth1.callback_confirmed)
-        } yield {
-          if(isCallbackConfirmed == "true") {
-            val oauthToken = tokens(OAuth1.token)
-            val redirectUriWithParam = s"$redirectUri?${OAuth1.token}=$oauthToken"
-            val redirectResponse = HttpResponse(
-              status = StatusCodes.Found,
-              headers = Seq(Location(redirectUriWithParam))
-            )
-            RedirectionSuccess(redirectResponse, tokens)
+    response.flatMap{
+      case hr@HttpResponse(StatusCodes.OK, _, entity, _) => {
+        val entitySource: Source[ByteString, _] = entity.dataBytes
+        val flow: Flow[ByteString, OAuthResponse, _] = Flow[ByteString].map(data => {
+          val responseTokenOpt = parseResponseTokens(data)
+          val oAuthResponseOpt = for {
+            tokens: Map[String, String] <- responseTokenOpt
+            isCallbackConfirmed: String <- tokens.get(OAuth1.callback_confirmed)
+          } yield {
+            if(isCallbackConfirmed == "true") {
+              val oauthToken = tokens(OAuth1.token)
+              val redirectUriWithParam = s"$redirectUri?${OAuth1.token}=$oauthToken"
+              val redirectResponse = HttpResponse(
+                status = StatusCodes.Found,
+                headers = Seq(Location(redirectUriWithParam))
+              )
+              val requestHeaders = oAuthRequest.headers.head
+              RedirectionSuccess(redirectResponse, tokens)
+            }
+            else {
+              TokenFailed(hr)
+            }
           }
-          else {
-            TokenFailed(hr)
-          }
-        }
-        oAuthResponseOpt.getOrElse(TokenFailed(hr))
+          oAuthResponseOpt.getOrElse(TokenFailed(hr))
+        })
+
+        runGraph(entitySource, flow)
       }
       case hr => {
-        AuthenticationFailed(hr)
+        Future.successful(AuthenticationFailed(hr))
       }
-    }(concurrent.ExecutionContext.global)
+    }(concurrent.ExecutionContext.Implicits.global)
   }
 
   def accessToken(params: Map[String, String], uri: String)
@@ -54,22 +68,23 @@ class OAuth1(consumerSecret: String)(implicit http: HttpExt) {
     val request = httpRequestForAccessToken(params, uri)
     val response: Future[HttpResponse] = http.singleRequest(request)
 
-    // TODO: implement a HttpEntity.Default case!
-    response.map{
-      case hr@HttpResponse(StatusCodes.OK, _, entity: HttpEntity.Strict, _) => {
-        val responseTokenOpt = parseResponseTokens(entity.data)
-        val oAuthResponseOpt = for {
-          tokens: Map[String, String] <- responseTokenOpt
-          _: String <- tokens.get(OAuth1.token)
-          _: String <- tokens.get(OAuth1.token_secret)
-        } yield AccessTokenSuccess(tokens)
-        oAuthResponseOpt.getOrElse(AuthenticationFailed(hr))
-      }
-      case hr@HttpResponse(StatusCodes.Unauthorized, _, entity, _) => {
-        AuthenticationFailed(hr)
+    response.flatMap{
+      case hr@HttpResponse(StatusCodes.OK, _, entity, _) => {
+        val entitySource = entity.dataBytes
+        val flow: Flow[ByteString, OAuthResponse, _] = Flow[ByteString].map(data => {
+          val responseTokenOpt = parseResponseTokens(data)
+          val oAuthResponseOpt = for {
+            tokens: Map[String, String] <- responseTokenOpt
+            _: String <- tokens.get(OAuth1.token)
+            _: String <- tokens.get(OAuth1.token_secret)
+          } yield AccessTokenSuccess(tokens)
+          oAuthResponseOpt.getOrElse(AuthenticationFailed(hr))
+        })
+
+        runGraph(entitySource, flow)
       }
       case hr => {
-        AuthenticationFailed(hr)
+        Future.successful(AuthenticationFailed(hr))
       }
     }(concurrent.ExecutionContext.global)
   }
@@ -88,7 +103,9 @@ class OAuth1(consumerSecret: String)(implicit http: HttpExt) {
       uri = uri,
       headers = Seq(
         Authorization(GenericHttpCredentials("OAuth",
-          OAuth1.headerParams(httpMethod.value, uri, consumerKey, consumerSecret)))
+          OAuth1.headerParams(
+            AuthenticationHeader(httpMethod.value, uri, consumerKey, consumerSecret)
+          )))
       )
     )
   }
@@ -122,19 +139,19 @@ object OAuth1 {
 
   val random = new Random(System.currentTimeMillis())
 
-  def headerParams(httpMethod: String,
-                   uri: String,
-                   consumerKey: String,
-                   consumerSecret: String): Map[String, String] = {
-    val params = Map(
-      consumer_key -> consumerKey,
+  def headerParams(header: AuthenticationHeader): Map[String, String] = {
+    def parameterMap = Map(
+      consumer_key -> header.consumerKey,
       nonce -> generateNonce,
       signature_method -> HmacSHA1,
       timestamp -> generateTimestamp,
       version -> version1
     )
+    val params = header.tokenOpt.map(t => parameterMap + (token -> t._1))
+      .getOrElse(parameterMap)
     val generatedSignature = Signer
-      .generateSignature(httpMethod, uri, params.toList, consumerSecret)
+      .generateSignature(header.httpMethod, header.uri, params.toList, header.consumerSecret,
+        oAuthTokenSecret = header.tokenOpt.map(t => t._2))
     params + (signature -> generatedSignature)
   }
 

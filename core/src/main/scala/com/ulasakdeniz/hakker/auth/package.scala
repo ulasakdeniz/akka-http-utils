@@ -4,6 +4,13 @@ import akka.http.scaladsl.model.HttpResponse
 
 package object auth {
 
+  final case class AuthenticationHeader(httpMethod: String,
+                                        uri: String,
+                                        consumerKey: String,
+                                        consumerSecret: String,
+                                        tokenOpt: Option[(String, String)] = None
+                                       )
+
   sealed trait OAuthResponse
   sealed trait OAuthSuccessfulResponse extends OAuthResponse
   sealed trait OAuthFailedResponse extends OAuthResponse
