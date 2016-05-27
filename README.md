@@ -1,4 +1,6 @@
-## hAkker
+## hAkker [![Build Status][travis-image]][travis-url]
+[travis-image]: https://travis-ci.org/ulasakdeniz/hakker.png?branch=master
+[travis-url]: https://travis-ci.org/ulasakdeniz/hakker
 
 **Work in Progress**
 
