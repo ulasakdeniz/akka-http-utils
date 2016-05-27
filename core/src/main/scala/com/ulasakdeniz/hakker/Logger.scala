@@ -7,11 +7,11 @@ trait Logger[T] { self: T =>
 
   val system: ActorSystem
 
-  implicit val logSource: LogSource[T] = new LogSource[T] {
+  private implicit val logSource: LogSource[T] = new LogSource[T] {
     override def genString(t: T): String = self.getClass.getSimpleName
   }
 
-  def logger(implicit logSource: LogSource[T]): LoggingAdapter = {
+  private def logger(implicit logSource: LogSource[T]): LoggingAdapter = {
     Logging(system, self)
   }
 

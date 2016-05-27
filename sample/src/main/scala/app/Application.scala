@@ -6,9 +6,8 @@ import akka.http.scaladsl.model.ws.TextMessage
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult.Complete
 import akka.http.scaladsl.server._
-import com.typesafe.config.ConfigFactory
 import com.ulasakdeniz.hakker.Controller
-import com.ulasakdeniz.hakker.auth.{AuthenticationHeader, OAuth1, OAuthResponse}
+import com.ulasakdeniz.hakker.auth.{AuthenticationHeader, OAuth1, OAuth1Helper, OAuthResponse}
 import com.ulasakdeniz.hakker.websocket.WebSocketHandler
 
 import scala.concurrent.Future
@@ -19,12 +18,11 @@ object Application extends Controller {
 
   lazy val webSocketHandler = new WebSocketHandler
 
-  val conf = ConfigFactory.load()
   // throws exception if these keys are missing
-  val twitterConsumerSecret = conf.getString("TwitterConsumerSecret")
-  val twitterConsumerKey = conf.getString("TwitterConsumerKey")
-  val accessTokenUri = conf.getString("TwitterAccessTokenUri")
-  val verificationUri = conf.getString("TwitterUserDataUri")
+  val twitterConsumerSecret = config.getString("TwitterConsumerSecret")
+  val twitterConsumerKey = config.getString("TwitterConsumerKey")
+  val accessTokenUri = config.getString("TwitterAccessTokenUri")
+  val verificationUri = config.getString("TwitterUserDataUri")
 
   val oAuth1 = new OAuth1(twitterConsumerSecret)(http, mat)
 
@@ -70,8 +68,8 @@ object Application extends Controller {
           parameters('oauth_token, 'oauth_verifier) {
             (oauth_token, oauth_verifier) => ctx =>
 
-              if(oauth_token == cache(OAuth1.token)) {
-                cache = cache + (OAuth1.verifier -> oauth_verifier)
+              if(oauth_token == cache(OAuth1Helper.token)) {
+                cache = cache + (OAuth1Helper.verifier -> oauth_verifier)
 
                 val oAuthResponseF = oAuth1.accessToken(cache, accessTokenUri)
 
@@ -104,14 +102,14 @@ object Application extends Controller {
 
   def getUserTwitterData(tokens: Map[String, String]): Future[RouteResult] = {
     val tokenTuple: Option[(String, String)] = for {
-      token <- tokens.get(OAuth1.token)
-      tokenSecret <- tokens.get(OAuth1.token_secret)
+      token <- tokens.get(OAuth1Helper.token)
+      tokenSecret <- tokens.get(OAuth1Helper.token_secret)
     } yield (token, tokenSecret)
 
     val params = AuthenticationHeader(
       "GET", verificationUri, twitterConsumerKey, twitterConsumerSecret, tokenTuple
     )
-    val headerParamsForRequest = OAuth1.headerParams(params)
+    val headerParamsForRequest = OAuth1Helper.headerParams(params)
 
     val request = HttpRequest(
       method = HttpMethods.GET,

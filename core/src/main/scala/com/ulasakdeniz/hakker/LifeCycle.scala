@@ -1,8 +1,7 @@
 package com.ulasakdeniz.hakker
 
 import akka.http.scaladsl.server.Directives.concat
-
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigFactory}
 
 trait LifeCycle {
 
@@ -12,7 +11,7 @@ trait LifeCycle {
 
   def afterStop: Unit
 
-  def config: Option[Config]
+  def config: Option[Config] = Option(ConfigFactory.load())
 
   def main(args: Array[String]): Unit = {
     beforeStart

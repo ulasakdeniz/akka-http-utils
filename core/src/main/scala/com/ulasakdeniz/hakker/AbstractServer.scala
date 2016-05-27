@@ -5,7 +5,7 @@ import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteResult}
 
 import scala.util.Try
 
-trait AbstractServer extends System with Logger[AbstractServer] {
+trait AbstractServer extends System with Conf with Logger[AbstractServer] {
 
   val exceptionHandler: ExceptionHandler
 

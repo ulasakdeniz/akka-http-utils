@@ -6,15 +6,16 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import com.ulasakdeniz.hakker.base.UnitSpec
-import com.ulasakdeniz.hakker.template.Render
 
 class ControllerUnitSpec extends UnitSpec with ScalatestRouteTest {
 
   "route" should {
     "render html files for GET request to appropriate paths" in new RoutesUnitSpecFixture {
       val html = "Hello World"
-      doReturn(complete(HttpResponse(entity = HttpEntity.Strict(ContentTypes.`text/html(UTF-8)`, ByteString(html)))))
-        .when(controllerSpy).render("index")
+      doReturn(complete(HttpResponse()
+        .withEntity(HttpEntity.Strict(ContentTypes.`text/html(UTF-8)`, ByteString(html)))))
+        .when(controllerSpy)
+        .render("index")
 
       Get("/") ~> controllerSpy.apply() ~> check {
         handled shouldBe true

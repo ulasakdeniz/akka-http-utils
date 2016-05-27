@@ -8,12 +8,11 @@ import scala.util.Try
 trait Render {
   val config: Config
 
-  lazy val frontendPath = Try(config.getString("frontend.frontend-path")).getOrElse("frontend")
-  lazy val htmlDirectory = Try(config.getString("frontend.html-directory")).getOrElse("html")
+  lazy val frontendPath = Try(config.getString("hakker.frontend.frontend-path")).getOrElse("frontend")
+  lazy val htmlDirectory = Try(config.getString("hakker.frontend.html-directory")).getOrElse("html")
 
   def render(templateName: String) = {
     val templatePath = s"$frontendPath/$htmlDirectory/$templateName.html"
-    println(s"TEMPLATE-PATH: $templatePath")
     getFromFile(templatePath)
   }
 
