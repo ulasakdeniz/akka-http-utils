@@ -41,10 +41,11 @@ abstract class AbstractOAuth1Helper {
   }
 
   def generateNonce: String = {
-    random.alphanumeric.take(32).mkString
+    val nonceLength = 32
+    random.alphanumeric.take(nonceLength).mkString
   }
 
   def generateTimestamp: String = {
-    (System.currentTimeMillis() / 1000l).toString
+    (System.currentTimeMillis() / 1000L).toString
   }
 }

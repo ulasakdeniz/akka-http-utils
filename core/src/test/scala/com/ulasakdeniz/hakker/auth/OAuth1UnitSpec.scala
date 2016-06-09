@@ -20,7 +20,7 @@ class OAuth1UnitSpec extends UnitSpec with ScalaFutures with BeforeAndAfterAll {
   implicit val mat = ActorMaterializer()
   val http = Http()(system)
 
-  override def afterAll() = {
+  override def afterAll(): Unit = {
     system.terminate()
   }
 

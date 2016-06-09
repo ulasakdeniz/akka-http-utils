@@ -9,9 +9,10 @@ trait AbstractServer extends System with Conf with Logger[AbstractServer] {
 
   val exceptionHandler: ExceptionHandler
 
-  def run(routeHandler: Route) = {
+  def run(routeHandler: Route): Unit = {
+    val defaultPort = 8080
     val interface: String = Try(config.getString("interface")).getOrElse("localhost")
-    val port: Int = Try(config.getInt("port")).getOrElse(8080)
+    val port: Int = Try(config.getInt("port")).getOrElse(defaultPort)
 
     val routes: Route = handleExceptions(exceptionHandler)(routeHandler)
     val bindingFuture = http.bindAndHandle(RouteResult.route2HandlerFlow(routes), interface, port)

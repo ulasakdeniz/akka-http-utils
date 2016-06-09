@@ -46,57 +46,64 @@ object Application extends Controller {
           jsonResponse(StatusCodes.OK, dilek)
         } ~
         path("twitter") { ctx =>
-          val requestUri = "https://api.twitter.com/oauth/request_token"
-          val redirectTo = "https://api.twitter.com/oauth/authenticate"
-          val oAuthResponseF = oAuth1.requestToken(twitterConsumerKey, requestUri, redirectTo)
-          val response: Future[RouteResult] = oAuthResponseF.map{
-            case OAuthResponse.RedirectionSuccess(httpResponse, tokens) => {
-              cache = cache ++ tokens
-              println(s"CACHE_AFTER_REQUEST_RESPONSE: $cache")
-              RouteResult.Complete(httpResponse)
-            }
-            case _ => {
-              println("TWITTER_RESPONSE_NOT_OK")
-              RouteResult.Complete(
-                HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
-              )
-            }
-          }
-          response
+          twitterRequestToken
         } ~
         path("callback") {
           parameters('oauth_token, 'oauth_verifier) {
             (oauth_token, oauth_verifier) => ctx =>
-
-              if(oauth_token == cache(OAuth1Helper.token)) {
-                cache = cache + (OAuth1Helper.verifier -> oauth_verifier)
-
-                val oAuthResponseF = oAuth1.accessToken(cache, accessTokenUri)
-
-                val response: Future[RouteResult] = oAuthResponseF.flatMap{
-                  case OAuthResponse.AccessTokenSuccess(tokens) => {
-                    getUserTwitterData(tokens)
-                  }
-                  case OAuthResponse.AuthenticationFailed(hr) => Future.successful{
-                    Complete(
-                      HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
-                    )
-                  }
-                  case _ => {
-                    Future.successful{
-                      Complete(HttpResponse(StatusCodes.Unauthorized, entity = "Other case"))
-                    }
-                  }
-                }
-                response
-              }
-              else {
-                Future.successful{
-                  Complete(HttpResponse(StatusCodes.Conflict))
-                }
-              }
+              twitterCallback(oauth_token, oauth_verifier)
           }
         }
+    }
+  }
+
+  def twitterRequestToken: Future[RouteResult] = {
+    val requestUri = "https://api.twitter.com/oauth/request_token"
+    val redirectTo = "https://api.twitter.com/oauth/authenticate"
+    val oAuthResponseF = oAuth1.requestToken(twitterConsumerKey, requestUri, redirectTo)
+    val response: Future[RouteResult] = oAuthResponseF.map{
+      case OAuthResponse.RedirectionSuccess(httpResponse, tokens) => {
+        cache = cache ++ tokens
+        println(s"CACHE_AFTER_REQUEST_RESPONSE: $cache")
+        RouteResult.Complete(httpResponse)
+      }
+      case _ => {
+        println("TWITTER_RESPONSE_NOT_OK")
+        RouteResult.Complete(
+          HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
+        )
+      }
+    }
+    response
+  }
+
+  def twitterCallback(oauth_token: String, oauth_verifier: String): Future[RouteResult] = {
+    if(oauth_token == cache(OAuth1Helper.token)) {
+      cache = cache + (OAuth1Helper.verifier -> oauth_verifier)
+
+      val oAuthResponseF = oAuth1.accessToken(cache, accessTokenUri)
+
+      val response: Future[RouteResult] = oAuthResponseF.flatMap{
+        case OAuthResponse.AccessTokenSuccess(tokens) => {
+          getUserTwitterData(tokens)
+        }
+        case OAuthResponse.AuthenticationFailed(hr) => Future.successful{
+          Complete(
+            HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
+          )
+        }
+        case _ => {
+          Future.successful{
+            Complete(HttpResponse(StatusCodes.Unauthorized, entity = "Other case"))
+          }
+        }
+      }
+      response
+    }
+    else {
+      Future.successful{
+        Complete(HttpResponse(StatusCodes.Conflict))
+      }
     }
   }
 
@@ -119,11 +126,9 @@ object Application extends Controller {
     val userDataResponse: Future[HttpResponse] = http.singleRequest(request)(mat)
     userDataResponse.map{
       case hr@HttpResponse(StatusCodes.OK, _, entity, _) => {
-        println("CALL_BACK_RESPONSE_OK")
         Complete(HttpResponse(entity = entity))
       }
       case hr => {
-        println("CALL_BACK_RESPONSE_NOT_OK")
         Complete(hr)
       }
     }
