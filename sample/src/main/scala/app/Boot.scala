@@ -1,5 +1,6 @@
 package app
 
+import app.controllers.Application
 import com.ulasakdeniz.hakker.{Controller, LifeCycle}
 
 object Boot extends LifeCycle {

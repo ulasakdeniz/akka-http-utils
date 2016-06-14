@@ -323,7 +323,7 @@ class OAuth1UnitSpec extends UnitSpec with ScalaFutures with BeforeAndAfterAll {
     val spiedOAuth1Companion = spy(TestOAuth1Helper)
 
     object TestOAuth1 extends OAuth1(consumerSecret)(spiedHttp, mat) {
-      override val oAuth1 = spiedOAuth1Companion
+      override val helper = spiedOAuth1Companion
     }
 
     val spiedOAuth1 = spy(TestOAuth1)

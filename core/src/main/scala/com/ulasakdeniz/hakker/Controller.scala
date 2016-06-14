@@ -3,7 +3,7 @@ package com.ulasakdeniz.hakker
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{Route, RouteResult}
 import com.typesafe.config.ConfigFactory
 import spray.json._
 import template.Render
@@ -25,6 +25,13 @@ trait Controller extends System with Render with DefaultJsonProtocol {
         }
     } ~ route
   }
+
+  def sendResponse(statusCode: StatusCode = StatusCodes.OK, entity: ResponseEntity = HttpEntity.Empty): RouteResult = {
+    RouteResult.Complete(HttpResponse(statusCode, entity = entity))
+  }
+
+  def sendInternalServerError: RouteResult =
+    sendResponse(StatusCodes.InternalServerError)
 
   def jsonResponse[T](statusCode: StatusCode = StatusCodes.OK, body: T)(implicit jsFormat: RootJsonFormat[T]): Route = {
     import SprayJsonSupport.sprayJsonMarshaller

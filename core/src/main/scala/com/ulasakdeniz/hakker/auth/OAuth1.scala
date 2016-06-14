@@ -14,7 +14,7 @@ import scala.collection.immutable.Seq
 
 class OAuth1(consumerSecret: String)(implicit http: HttpExt, mat: ActorMaterializer) {
 
-  val oAuth1: AbstractOAuth1Helper = OAuth1Helper
+  val helper: AbstractOAuth1Helper = OAuth1Helper
 
   def runGraph(source: Source[ByteString, _],
                flow: Flow[ByteString, OAuthResponse, _]): Future[OAuthResponse] = {
@@ -38,11 +38,11 @@ class OAuth1(consumerSecret: String)(implicit http: HttpExt, mat: ActorMateriali
           val responseTokenOpt = parseResponseTokens(data)
           val oAuthResponseOpt = for {
             tokens: Map[String, String] <- responseTokenOpt
-            isCallbackConfirmed: String <- tokens.get(oAuth1.callback_confirmed)
-            oauthToken <- tokens.get(oAuth1.token)
+            isCallbackConfirmed: String <- tokens.get(helper.callback_confirmed)
+            oauthToken <- tokens.get(helper.token)
           } yield {
             if(isCallbackConfirmed == "true") {
-              val redirectUriWithParam = s"$redirectUri?${oAuth1.token}=$oauthToken"
+              val redirectUriWithParam = s"$redirectUri?${helper.token}=$oauthToken"
               val redirectResponse = HttpResponse(
                 status = StatusCodes.Found,
                 headers = Seq(Location(redirectUriWithParam))
@@ -75,8 +75,8 @@ class OAuth1(consumerSecret: String)(implicit http: HttpExt, mat: ActorMateriali
           val responseTokenOpt = parseResponseTokens(data)
           val oAuthResponseOpt = for {
             tokens: Map[String, String] <- responseTokenOpt
-            _: String <- tokens.get(oAuth1.token)
-            _: String <- tokens.get(oAuth1.token_secret)
+            _: String <- tokens.get(helper.token)
+            _: String <- tokens.get(helper.token_secret)
           } yield AccessTokenSuccess(tokens)
           oAuthResponseOpt.getOrElse(AuthenticationFailed(hr))
         })
@@ -103,7 +103,7 @@ class OAuth1(consumerSecret: String)(implicit http: HttpExt, mat: ActorMateriali
       uri = uri,
       headers = Seq(
         Authorization(GenericHttpCredentials("OAuth",
-          oAuth1.headerParams(
+          helper.headerParams(
             AuthenticationHeader(httpMethod.value, uri, consumerKey, consumerSecret)
           )))
       )
