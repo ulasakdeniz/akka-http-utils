@@ -2,6 +2,9 @@ val projectName = "hakker"
 
 val akkaVersion = "2.4.5"
 val scalaTestVersion = "2.2.6"
+val circeVersion = "0.4.1"
+
+resolvers += Resolver.bintrayRepo("hseeberger", "maven")
 
 val commonSettings = Seq(
   organization := s"com.ulasakdeniz.$projectName",
@@ -18,12 +21,16 @@ val commonSettings = Seq(
     "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
     "com.typesafe.akka" %% "akka-http-core" % akkaVersion,
     "com.typesafe.akka" %% "akka-http-experimental" % akkaVersion,
-    "com.typesafe.akka" %% "akka-http-spray-json-experimental" % akkaVersion,
     "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion,
     "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion,
     "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-    "org.mockito" % "mockito-core" % "1.10.19"
-  )
+    "org.mockito" % "mockito-core" % "1.10.19",
+    "de.heikoseeberger" %% "akka-http-circe" % "1.7.0"
+  ) ++ Seq(
+    "io.circe" %% "circe-core",
+    "io.circe" %% "circe-generic",
+    "io.circe" %% "circe-parser"
+  ).map(_ % circeVersion)
 )
 
 lazy val root = Project(projectName, file("."))

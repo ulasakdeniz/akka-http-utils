@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.RouteResult.Complete
 import akka.http.scaladsl.server._
 import akka.stream.scaladsl.{Keep, Sink}
 import akka.util.ByteString
+import app.models.TwitterUser
 import app.services.Redis
 import com.ulasakdeniz.hakker.Controller
 import com.ulasakdeniz.hakker.auth.{AuthenticationHeader, OAuth1, OAuth1Helper, OAuthResponse}
@@ -41,11 +42,15 @@ object Application extends Controller {
             }
           )
         } ~
-        path("user") {
-          implicit val userFormat = jsonFormat2(User)
-          val dilek = User("Dilek", List("do this", "than that", "after that", "end"))
-          jsonResponse(StatusCodes.OK, dilek)
-        } ~
+        path("user" / Remaining) { userName => {
+          ctx =>
+            val userData = getUserTwitterData(userName)
+            userData.map(byteStringOpt => {
+              byteStringOpt.map(byteString => {
+                sendResponse(entity = byteString.utf8String)
+              }).getOrElse(sendInternalServerError)
+            })
+        }} ~
         path("twitter") { ctx =>
           twitterRequestToken
         } ~
@@ -99,15 +104,23 @@ object Application extends Controller {
 
         val response: Future[RouteResult] = oAuthResponseF.flatMap{
           case OAuthResponse.AccessTokenSuccess(tokens) => {
-            //TODO: check?
-            Redis.deleteHM(oauth_token)
-
-            val userData = getUserTwitterData(tokens)
-            userData.map(entityOpt => {
-              entityOpt.map(byteString => {
-                sendResponse(entity = byteString.utf8String)
-              }).getOrElse(sendInternalServerError)
-            })
+            Redis.setHM(tokens("screen_name"), tokens).map(isSuccessful => {
+              if(isSuccessful) {
+                val twitterUserOpt = TwitterUser.fromTokens(tokens)
+                twitterUserOpt.map(twitterUser => {
+                  val successMessage = s"${twitterUser.screen_name} is successfully registered!"
+                  sendResponse(entity = successMessage)
+                }).getOrElse(sendInternalServerError)
+              }
+              else {
+                sendInternalServerError
+              }
+            }).recover{
+              case ex: Exception => {
+                ex.printStackTrace()
+                sendInternalServerError
+              }
+            }
           }
           case OAuthResponse.AuthenticationFailed(hr) => Future.successful{
             Complete(
@@ -135,35 +148,42 @@ object Application extends Controller {
     }
   }
 
-  def getUserTwitterData(tokens: Map[String, String]): Future[Option[ByteString]] = {
-    val tokenTuple: Option[(String, String)] = for {
-      token <- tokens.get(OAuth1Helper.token)
-      tokenSecret <- tokens.get(OAuth1Helper.token_secret)
-    } yield (token, tokenSecret)
+  def getUserTwitterData(userName: String): Future[Option[ByteString]] = {
+    Redis.getHM(userName).flatMap(tokensOpt => {
+      tokensOpt.map(tokens => {
+        val tokenTuple: Option[(String, String)] = for {
+          token <- tokens.get(OAuth1Helper.token)
+          tokenSecret <- tokens.get(OAuth1Helper.token_secret)
+        } yield (token, tokenSecret)
 
-    val params = AuthenticationHeader(
-      "GET", verificationUri, twitterConsumerKey, twitterConsumerSecret, tokenTuple
-    )
-    val headerParamsForRequest = OAuth1Helper.headerParams(params)
+        val params = AuthenticationHeader(
+          "GET", verificationUri, twitterConsumerKey, twitterConsumerSecret, tokenTuple
+        )
+        val headerParamsForRequest = OAuth1Helper.headerParams(params)
 
-    val request = HttpRequest(
-      method = HttpMethods.GET,
-      uri = verificationUri,
-      headers = Seq(Authorization(GenericHttpCredentials("OAuth", headerParamsForRequest)))
-    )
-    val userDataResponse: Future[HttpResponse] = http.singleRequest(request)(mat)
-    userDataResponse.flatMap{
-      case hr@HttpResponse(StatusCodes.OK, _, entity, _) => {
-        val entitySource = entity.dataBytes
-        val graph = entitySource.toMat(Sink.head[ByteString])(Keep.right)
-        val resultF = graph.run()
-        resultF.map(bs => Option(bs))
-      }
-      case hr => {
-        Future.successful(None)
+        val request = HttpRequest(
+          method = HttpMethods.GET,
+          uri = verificationUri,
+          headers = Seq(Authorization(GenericHttpCredentials("OAuth", headerParamsForRequest)))
+        )
+        val userDataResponse: Future[HttpResponse] = http.singleRequest(request)(mat)
+        userDataResponse.flatMap{
+          case hr@HttpResponse(StatusCodes.OK, _, entity, _) => {
+            val entitySource = entity.dataBytes
+            val graph = entitySource.toMat(Sink.head[ByteString])(Keep.right)
+            val resultF = graph.run()
+            resultF.map(bs => Option(bs))
+          }
+          case hr => {
+            Future.successful(None)
+          }
+        }
+      }).getOrElse(Future.successful(None))
+    }).recover{
+      case ex: Exception => {
+        ex.printStackTrace()
+        None
       }
     }
   }
 }
-
-case class User(name: String, notes: List[String])

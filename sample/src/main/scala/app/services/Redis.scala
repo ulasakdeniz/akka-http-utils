@@ -22,11 +22,19 @@ abstract class AbstractRedis {
 
   def setOAuthTokens(tokens: Map[String, String]): Future[Boolean] = {
     val oauth_token = "oauth_token"
+    val ttlSeconds = 100
     tokens.get(oauth_token).map(token => {
       Future{
         client.hmset(token, tokens)
+        client.expire(token, ttlSeconds)
       }
     }).getOrElse(Future.successful(false))
+  }
+
+  def setHM(key: String, map: Map[String, String]): Future[Boolean] = {
+    Future{
+      client.hmset(key, map)
+    }
   }
 
   def getHM(key: String): Future[Option[Map[String, String]]] = {
@@ -35,7 +43,7 @@ abstract class AbstractRedis {
     }
   }
 
-  def deleteHM(key: String): Future[Option[Long]] = {
+  def delete(key: String): Future[Option[Long]] = {
     Future{
       client.del(key)
     }

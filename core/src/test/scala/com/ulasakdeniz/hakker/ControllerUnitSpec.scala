@@ -6,6 +6,8 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import com.ulasakdeniz.hakker.base.UnitSpec
+import io.circe.generic.auto._
+import io.circe.syntax._
 
 class ControllerUnitSpec extends UnitSpec with ScalatestRouteTest {
 
@@ -57,10 +59,7 @@ class ControllerUnitSpec extends UnitSpec with ScalatestRouteTest {
     "return a json response with the status code" in new RoutesUnitSpecFixture {
       Get("/user") ~> routes ~> check {
         val jsonResult =
-          """{
-            |  "name": "Dilek",
-            |  "notes": ["do this", "than that", "after that", "end"]
-            |}""".stripMargin
+          """"{\"name\":\"Dilek\",\"notes\":[\"do this\",\"than that\",\"after that\",\"end\"]}""""
 
         status shouldEqual StatusCodes.OK
         inside(responseEntity) {
@@ -86,9 +85,9 @@ class ControllerUnitSpec extends UnitSpec with ScalatestRouteTest {
             render("index")
           } ~
             path("user") {
-              implicit val userFormat = jsonFormat2(User)
+              import de.heikoseeberger.akkahttpcirce.CirceSupport._
               val dilek = User("Dilek", List("do this", "than that", "after that", "end"))
-              jsonResponse(StatusCodes.OK, dilek)
+              complete(dilek.asJson.noSpaces)
             }
         }
       }
