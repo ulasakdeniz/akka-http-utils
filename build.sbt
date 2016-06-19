@@ -25,6 +25,8 @@ val commonSettings = Seq(
     "com.typesafe.akka" %% "akka-http-testkit" % akkaVersion,
     "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
     "org.mockito" % "mockito-core" % "1.10.19",
+    "ch.qos.logback" %  "logback-classic" % "1.1.7",
+    "com.typesafe.scala-logging" %% "scala-logging" % "3.4.0",
     "de.heikoseeberger" %% "akka-http-circe" % "1.7.0"
   ) ++ Seq(
     "io.circe" %% "circe-core",
