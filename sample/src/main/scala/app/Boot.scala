@@ -1,19 +1,20 @@
 package app
 
 import app.controllers.Application
+import com.typesafe.scalalogging.StrictLogging
 import com.ulasakdeniz.hakker.{Controller, LifeCycle}
 
-object Boot extends LifeCycle {
+object Boot extends LifeCycle with StrictLogging{
 
   override def boot: List[Controller] = {
     List(Application)
   }
 
   override def beforeStart: Unit = {
-    println("BEFORE_START")
+    logger.info("BEFORE_START")
   }
 
   override def afterStop: Unit = {
-    println("AFTER_STOP")
+    logger.info("AFTER_STOP")
   }
 }

@@ -10,6 +10,7 @@ import akka.stream.scaladsl.{Keep, Sink}
 import akka.util.ByteString
 import app.models.TwitterUser
 import app.services.Redis
+import com.typesafe.scalalogging.StrictLogging
 import com.ulasakdeniz.hakker.Controller
 import com.ulasakdeniz.hakker.auth.{AuthenticationHeader, OAuth1, OAuth1Helper, OAuthResponse}
 import com.ulasakdeniz.hakker.websocket.WebSocketHandler
@@ -18,7 +19,7 @@ import scala.collection.immutable.Seq
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object Application extends Controller {
+object Application extends Controller with StrictLogging {
 
   lazy val webSocketHandler = new WebSocketHandler
 
@@ -72,9 +73,11 @@ object Application extends Controller {
       case OAuthResponse.RedirectionSuccess(httpResponse, tokens) => {
         Redis.setOAuthTokens(tokens).map(isSuccessful => {
           if(isSuccessful) {
+            logger.info("twitterRequestToken is successfully taken")
             RouteResult.Complete(httpResponse)
           }
           else {
+            logger.warn("twitterRequestToken is taken, but cannot be written to Redis")
             RouteResult.Complete(
               HttpResponse(StatusCodes.InternalServerError)
             )
@@ -82,6 +85,7 @@ object Application extends Controller {
         })
       }
       case _ => {
+        logger.warn("twitterRequestToken is failed, UnAuthorized response is sent")
         Future.successful(
           RouteResult.Complete(
             HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed"))
@@ -89,6 +93,7 @@ object Application extends Controller {
       }
     }.recover{
       case ex: Exception => {
+        logger.error(s"Exception recovered while getting request token: $ex")
         RouteResult.Complete(
           HttpResponse(StatusCodes.InternalServerError)
         )
@@ -109,40 +114,52 @@ object Application extends Controller {
                 val twitterUserOpt = TwitterUser.fromTokens(tokens)
                 twitterUserOpt.map(twitterUser => {
                   val successMessage = s"${twitterUser.screen_name} is successfully registered!"
+                  logger.info(successMessage)
                   sendResponse(entity = successMessage)
-                }).getOrElse(sendInternalServerError)
+                }).getOrElse{
+                  logger.warn("InternalServerError: Registering user is failed, TwitterUser cannot be created")
+                  sendInternalServerError
+                }
               }
               else {
+                logger.warn("InternalServerError: Registering user is failed, saving user to Redis is failed")
                 sendInternalServerError
               }
             }).recover{
               case ex: Exception => {
-                ex.printStackTrace()
+                logger.error(s"InternalServerError: Exception recovered while saving user data to Redis: $ex")
                 sendInternalServerError
               }
             }
           }
-          case OAuthResponse.AuthenticationFailed(hr) => Future.successful{
-            Complete(
-              HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
-            )
+          case OAuthResponse.AuthenticationFailed(hr) => {
+            logger.warn(s"AuthenticationFailed while taking access token: $hr")
+            Future.successful{
+              Complete(
+                HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
+              )
+            }
           }
-          case _ => Future.successful{
-              Complete(HttpResponse(StatusCodes.Unauthorized, entity = "Other case"))
+          case _ => {
+            logger.warn("Unauthorized: While taking access token")
+            Future.successful{
+              Complete(HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed"))
+            }
           }
         }.recover{
           case ex: Exception => {
-            ex.printStackTrace()
+            logger.error(s"InternalServerError: Exception recovered while taking access token: $ex")
             sendInternalServerError
           }
         }
         response
       }).getOrElse{
+        logger.warn(s"Conflict: $oauth_token cannot be found in Redis")
         Future.successful(sendResponse(StatusCodes.Conflict))
       }
     }).recover{
       case ex: Exception => {
-        ex.printStackTrace()
+        logger.error(s"InternalServerError: Exception recovered while querying Redis for $oauth_token: $ex")
         sendInternalServerError
       }
     }
@@ -172,16 +189,21 @@ object Application extends Controller {
             val entitySource = entity.dataBytes
             val graph = entitySource.toMat(Sink.head[ByteString])(Keep.right)
             val resultF = graph.run()
+            logger.info(s"Twitter data for userName: $userName is successfully taken")
             resultF.map(bs => Option(bs))
           }
-          case hr => {
+          case _ => {
+            logger.warn(s"Twitter data for userName: $userName cannot be taken")
             Future.successful(None)
           }
         }
-      }).getOrElse(Future.successful(None))
+      }).getOrElse{
+        logger.warn(s"$userName cannot be found in Redis")
+        Future.successful(None)
+      }
     }).recover{
       case ex: Exception => {
-        ex.printStackTrace()
+        logger.error(s"Exception recovered while querying Redis for $userName: $ex")
         None
       }
     }
