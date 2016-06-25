@@ -6,5 +6,5 @@ trait Conf {
   val configName = "hakker"
 
   val config: Config
-  lazy val defaultConfig = ConfigFactory.load(configName).getConfig(configName)
+  val defaultConfig = ConfigFactory.load(configName).getConfig(configName)
 }

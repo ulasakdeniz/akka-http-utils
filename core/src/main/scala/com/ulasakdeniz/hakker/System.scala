@@ -7,14 +7,9 @@ import com.typesafe.config.Config
 
 import scala.concurrent.ExecutionContext
 
-trait System {
-  implicit lazy val system: ActorSystem = System.system
+trait System extends Conf {
+  implicit lazy val system: ActorSystem = ActorSystem("app", config)
   implicit lazy val mat: ActorMaterializer = ActorMaterializer()(system)
   implicit lazy val ec: ExecutionContext = system.dispatcher
   lazy val http = Http(system)
-}
-
-object System extends Conf {
-  val config: Config = defaultConfig
-  implicit lazy val system: ActorSystem = ActorSystem("app", config)
 }
