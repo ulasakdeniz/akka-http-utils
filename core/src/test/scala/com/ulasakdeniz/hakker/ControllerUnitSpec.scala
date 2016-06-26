@@ -12,7 +12,7 @@ import io.circe.syntax._
 class ControllerUnitSpec extends UnitSpec with ScalatestRouteTest {
 
   "route" should {
-    "render html files for GET request to appropriate paths" in new RoutesUnitSpecFixture {
+    "render html files for GET request to appropriate paths" in new ControllerUnitSpecFixture {
       val html = "Hello World"
       doReturn(complete(HttpResponse()
         .withEntity(HttpEntity.Strict(ContentTypes.`text/html(UTF-8)`, ByteString(html)))))
@@ -31,21 +31,21 @@ class ControllerUnitSpec extends UnitSpec with ScalatestRouteTest {
       }
     }
 
-    "leave GET requests to other paths unhandled" in new RoutesUnitSpecFixture {
+    "leave GET requests to other paths unhandled" in new ControllerUnitSpecFixture {
       Get("/anUnhandledPath") ~> routes ~> check {
         handled shouldBe false
       }
     }
 
     "return a MethodNotAllowed error for PUT requests to the root path" in
-      new RoutesUnitSpecFixture {
+      new ControllerUnitSpecFixture {
         Put() ~> Route.seal(routes) ~> check {
         status === StatusCodes.MethodNotAllowed
         responseAs[String] shouldEqual "HTTP method not allowed, supported methods: GET"
       }
     }
 
-    "handle the routes in the route function" in new RoutesUnitSpecFixture {
+    "handle the routes in the route function" in new ControllerUnitSpecFixture {
       Get("/aPath") ~> routes ~> check {
         handled shouldBe true
         responseEntity.contentType shouldEqual ContentTypes.`text/plain(UTF-8)`
@@ -56,7 +56,7 @@ class ControllerUnitSpec extends UnitSpec with ScalatestRouteTest {
 
   "jsonResponse" should {
 
-    "return a json response with the status code" in new RoutesUnitSpecFixture {
+    "return a json response with the status code" in new ControllerUnitSpecFixture {
       Get("/user") ~> routes ~> check {
         val jsonResult =
           """"{\"name\":\"Dilek\",\"notes\":[\"do this\",\"than that\",\"after that\",\"end\"]}""""
@@ -72,7 +72,7 @@ class ControllerUnitSpec extends UnitSpec with ScalatestRouteTest {
     }
   }
 
-  trait RoutesUnitSpecFixture {
+  trait ControllerUnitSpecFixture {
 
     object ControllerTest extends Controller {
 

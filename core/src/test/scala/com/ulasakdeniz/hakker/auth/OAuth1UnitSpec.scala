@@ -9,12 +9,11 @@ import akka.stream.scaladsl.{Flow, Source}
 import akka.util.ByteString
 import com.ulasakdeniz.hakker.base.UnitSpec
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.concurrent.ScalaFutures
 
 import scala.concurrent.Future
 import scala.collection.immutable.Seq
 
-class OAuth1UnitSpec extends UnitSpec with ScalaFutures with BeforeAndAfterAll {
+class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
 
   implicit val system = ActorSystem("test")
   implicit val mat = ActorMaterializer()

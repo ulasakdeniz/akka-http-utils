@@ -12,7 +12,13 @@ class AbstractServerUnitSpec extends UnitSpec with ScalatestRouteTest {
   "run" should {
 
     "handle exceptions with exceptionHandler" in new AbstractServerFixture {
-      // TODO
+      val route = get{
+        path(""){
+          throw new Exception("Boom!")
+        }
+      }
+
+
     }
   }
 
