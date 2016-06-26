@@ -1,11 +1,10 @@
 package app.controllers
 
-import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.{HttpMethods, HttpRequest, HttpResponse}
 import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials}
 import akka.http.scaladsl.model.ws.TextMessage
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.RouteResult.Complete
-import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Keep, Sink}
 import akka.util.ByteString
 import app.models.TwitterUser
@@ -44,70 +43,67 @@ object Application extends Controller with StrictLogging {
           )
         } ~
         path("user" / Remaining) { userName => {
-          ctx =>
-            val userData = getUserTwitterData(userName)
-            userData.map(byteStringOpt => {
+          val eventualResponse = getUserTwitterData(userName)
+            .map(byteStringOpt => {
               byteStringOpt.map(byteString => {
-                sendResponse(entity = byteString.utf8String)
-              }).getOrElse(sendInternalServerError)
+                HttpResponse(entity = byteString.utf8String)
+              }).getOrElse(internalServerError)
             })
+          complete(eventualResponse)
         }} ~
-        path("twitter") { ctx =>
-          twitterRequestToken
+        path("twitter") {
+          complete(twitterRequestToken)
         } ~
         path("callback") {
           parameters('oauth_token, 'oauth_verifier) {
-            (oauth_token, oauth_verifier) => ctx =>
-              twitterCallback(oauth_token, oauth_verifier)
+            (oauth_token, oauth_verifier) =>
+              complete(
+                twitterCallback(oauth_token, oauth_verifier)
+              )
           }
         }
     }
   }
 
-  def twitterRequestToken: Future[RouteResult] = {
+  def twitterRequestToken: Future[HttpResponse] = {
     val requestUri = "https://api.twitter.com/oauth/request_token"
     val redirectTo = "https://api.twitter.com/oauth/authenticate"
     val oAuthResponseF = oAuth1.requestToken(twitterConsumerKey, requestUri, redirectTo)
 
-    oAuthResponseF.flatMap{
+    oAuthResponseF.flatMap {
       case OAuthResponse.RedirectionSuccess(httpResponse, tokens) => {
         Redis.setOAuthTokens(tokens).map(isSuccessful => {
           if(isSuccessful) {
             logger.info("twitterRequestToken is successfully taken")
-            RouteResult.Complete(httpResponse)
+            httpResponse
           }
           else {
             logger.warn("twitterRequestToken is taken, but cannot be written to Redis")
-            RouteResult.Complete(
-              HttpResponse(StatusCodes.InternalServerError)
-            )
+            HttpResponse(StatusCodes.InternalServerError)
           }
         })
       }
       case _ => {
         logger.warn("twitterRequestToken is failed, UnAuthorized response is sent")
-        Future.successful(
-          RouteResult.Complete(
-            HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed"))
-        )
+        Future.successful {
+          HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
+        }
       }
-    }.recover{
+    }.recover {
       case ex: Exception => {
         logger.error(s"Exception recovered while getting request token: $ex")
-        RouteResult.Complete(
-          HttpResponse(StatusCodes.InternalServerError)
-        )
+        HttpResponse(StatusCodes.InternalServerError)
       }
     }
   }
 
-  def twitterCallback(oauth_token: String, oauth_verifier: String): Future[RouteResult] = {
+  def twitterCallback(oauth_token: String, oauth_verifier: String): Future[HttpResponse] = {
     Redis.getHM(oauth_token).flatMap(tokenOpt => {
       tokenOpt.map(tokenMap => {
         val verifierTuple = OAuth1Helper.verifier -> oauth_verifier
         val oAuthResponseF = oAuth1.accessToken(tokenMap + verifierTuple, accessTokenUri)
 
-        val response: Future[RouteResult] = oAuthResponseF.flatMap{
+        val response: Future[HttpResponse] = oAuthResponseF.flatMap{
           case OAuthResponse.AccessTokenSuccess(tokens) => {
             Redis.setHM(tokens("screen_name"), tokens).map(isSuccessful => {
               if(isSuccessful) {
@@ -115,52 +111,50 @@ object Application extends Controller with StrictLogging {
                 twitterUserOpt.map(twitterUser => {
                   val successMessage = s"${twitterUser.screen_name} is successfully registered!"
                   logger.info(successMessage)
-                  sendResponse(entity = successMessage)
+                  HttpResponse(entity = successMessage)
                 }).getOrElse{
                   logger.warn("InternalServerError: Registering user is failed, TwitterUser cannot be created")
-                  sendInternalServerError
+                  internalServerError
                 }
               }
               else {
                 logger.warn("InternalServerError: Registering user is failed, saving user to Redis is failed")
-                sendInternalServerError
+                internalServerError
               }
             }).recover{
               case ex: Exception => {
                 logger.error(s"InternalServerError: Exception recovered while saving user data to Redis: $ex")
-                sendInternalServerError
+                internalServerError
               }
             }
           }
           case OAuthResponse.AuthenticationFailed(hr) => {
             logger.warn(s"AuthenticationFailed while taking access token: $hr")
             Future.successful{
-              Complete(
-                HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
-              )
+              HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
             }
           }
           case _ => {
             logger.warn("Unauthorized: While taking access token")
             Future.successful{
-              Complete(HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed"))
+              HttpResponse(StatusCodes.Unauthorized, entity = "Authorization failed")
             }
           }
         }.recover{
           case ex: Exception => {
             logger.error(s"InternalServerError: Exception recovered while taking access token: $ex")
-            sendInternalServerError
+            internalServerError
           }
         }
         response
       }).getOrElse{
         logger.warn(s"Conflict: $oauth_token cannot be found in Redis")
-        Future.successful(sendResponse(StatusCodes.Conflict))
+        Future.successful(HttpResponse(StatusCodes.Conflict))
       }
     }).recover{
       case ex: Exception => {
         logger.error(s"InternalServerError: Exception recovered while querying Redis for $oauth_token: $ex")
-        sendInternalServerError
+        internalServerError
       }
     }
   }

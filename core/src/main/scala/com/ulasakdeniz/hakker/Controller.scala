@@ -1,8 +1,8 @@
 package com.ulasakdeniz.hakker
 
-import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Route, RouteResult}
+import akka.http.scaladsl.server.Route
 import com.typesafe.config.ConfigFactory
 import template.Render
 
@@ -24,10 +24,6 @@ trait Controller extends System with Render {
     } ~ route
   }
 
-  def sendResponse(statusCode: StatusCode = StatusCodes.OK, entity: ResponseEntity = HttpEntity.Empty): RouteResult = {
-    RouteResult.Complete(HttpResponse(statusCode, entity = entity))
-  }
-
-  def sendInternalServerError: RouteResult =
-    sendResponse(StatusCodes.InternalServerError)
+  def internalServerError: HttpResponse =
+    HttpResponse(StatusCodes.InternalServerError)
 }
