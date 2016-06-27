@@ -1,4 +1,4 @@
-## hAkker [![Build Status][travis-image]][travis-url] [![license][license-image]][license-url]
+## hAkker [![Build Status][travis-image]][travis-url] [![license][license-image]][license-url] [![Coverage Status][coveralls-image]][coveralls-url]
 [travis-image]: http://img.shields.io/travis/ulasakdeniz/hakker/master.svg
 [travis-url]: https://travis-ci.org/ulasakdeniz/hakker
 [coveralls-image]: https://coveralls.io/repos/github/ulasakdeniz/hakker/badge.svg?branch=master

@@ -54,7 +54,6 @@ lazy val core = (project in file("core"))
 
 lazy val sample = (project in file("sample"))
   .settings(commonSettings: _*)
-  .settings(coverageEnabled := false)
   .settings(publishArtifact := false)
   .settings(libraryDependencies += "net.debasishg" %% "redisclient" % "3.0")
   .dependsOn(core)
