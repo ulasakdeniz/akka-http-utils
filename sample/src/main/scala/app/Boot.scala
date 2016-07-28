@@ -4,7 +4,7 @@ import app.controllers.Application
 import com.typesafe.scalalogging.StrictLogging
 import com.ulasakdeniz.hakker.{Controller, LifeCycle}
 
-object Boot extends LifeCycle with StrictLogging{
+object Boot extends LifeCycle with StrictLogging {
 
   override def boot: List[Controller] = {
     List(Application)

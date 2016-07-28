@@ -10,9 +10,9 @@ trait AbstractServer extends System with Logger[AbstractServer] {
   val exceptionHandler: ExceptionHandler
 
   def run(routeHandler: Route): Unit = {
-    val defaultPort = 8080
+    val defaultPort       = 8080
     val interface: String = Try(config.getString("interface")).getOrElse("localhost")
-    val port: Int = Try(config.getInt("port")).getOrElse(defaultPort)
+    val port: Int         = Try(config.getInt("port")).getOrElse(defaultPort)
 
     val routes: Route = handleExceptions(exceptionHandler)(routeHandler)
     val bindingFuture = http.bindAndHandle(RouteResult.route2HandlerFlow(routes), interface, port)
@@ -21,9 +21,9 @@ trait AbstractServer extends System with Logger[AbstractServer] {
 
     bindingFuture
       .map(binding => {
-        sys.addShutdownHook( binding.unbind() )
+        sys.addShutdownHook(binding.unbind())
       })
-      .recover { case ex:Exception => log.error("Failed to bind!") }
+      .recover { case ex: Exception => log.error("Failed to bind!") }
 
     sys.addShutdownHook {
       system.terminate()

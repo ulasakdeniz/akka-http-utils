@@ -15,8 +15,8 @@ trait LifeCycle {
 
   def main(args: Array[String]): Unit = {
     beforeStart
-    val server = new Server(config)
-    val allRoutes = concat(boot.map(_.apply()):_*)
+    val server    = new Server(config)
+    val allRoutes = concat(boot.map(_.apply()): _*)
     server.run(allRoutes)
     sys.addShutdownHook(afterStop)
   }

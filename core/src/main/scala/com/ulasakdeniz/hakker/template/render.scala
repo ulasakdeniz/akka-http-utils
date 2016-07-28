@@ -9,8 +9,10 @@ import scala.util.Try
 trait Render {
   val config: Config
 
-  lazy val frontendPath = Try(config.getString("hakker.frontend.frontend-path")).getOrElse("frontend")
-  lazy val htmlDirectory = Try(config.getString("hakker.frontend.html-directory")).getOrElse("html")
+  lazy val frontendPath =
+    Try(config.getString("hakker.frontend.frontend-path")).getOrElse("frontend")
+  lazy val htmlDirectory =
+    Try(config.getString("hakker.frontend.html-directory")).getOrElse("html")
 
   def render(templateName: String): Route = {
     val path: String = templatePath(templateName)
