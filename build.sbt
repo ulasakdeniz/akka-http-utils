@@ -24,7 +24,7 @@ val commonSettings = Seq(
 lazy val root = Project(projectName, file("."))
   .enablePlugins(GitVersioning)
   .settings(commonSettings: _*)
-  .aggregate(core, sample)
+  .aggregate(core)
 
 lazy val core = (project in file("core"))
   .settings(commonSettings: _*)
@@ -41,8 +41,6 @@ lazy val core = (project in file("core"))
     ).map(_ % akkaVersion) ++ Seq(
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
       "org.mockito" % "mockito-core" % "1.10.19",
-      "ch.qos.logback" %  "logback-classic" % "1.1.7",
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.4.0",
       "de.heikoseeberger" %% "akka-http-circe" % "1.7.0"
     ) ++ Seq(
       "io.circe" %% "circe-core",
@@ -51,9 +49,3 @@ lazy val core = (project in file("core"))
     ).map(_ % circeVersion)
   )
   .settings(name := s"$projectName-core")
-
-lazy val sample = (project in file("sample"))
-  .settings(commonSettings: _*)
-  .settings(publishArtifact := false)
-  .settings(libraryDependencies += "net.debasishg" %% "redisclient" % "3.0")
-  .dependsOn(core)
