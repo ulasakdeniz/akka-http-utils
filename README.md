@@ -13,9 +13,9 @@ A backend web framework being developed with Akka.
 ### Usage
 Add the following to your `build.sbt`:
 
-```libraryDependencies += "com.ulasakdeniz.hakker" %% "hakker-core" % "0.1"```
+```libraryDependencies += "com.ulasakdeniz.hakker" %% "hakker-core" % "0.1.1"```
 
-You need at least one `Controller` to define paths and behaviors of your application's routes. You should use [akka-http's Routing DSL](http://doc.akka.io/docs/akka/2.4.7/scala/http/routing-dsl/index.html) for routes. Here is an example:
+You need at least one `Controller` to define paths and behaviors of your application's routes. You should use [akka-http's Routing DSL](http://doc.akka.io/docs/akka/2.4.8/scala/http/routing-dsl/index.html) for routes. Here is an example:
 
 ```scala
 package com.example
@@ -35,7 +35,7 @@ object Application extends Controller {
 }
 ```
 
-Rendering an `HTML` file instead of plain text requires to specify frontend directory path (`hakker.frontend.frontend-path`) in the [configuration file](https://github.com/ulasakdeniz/hakker/blob/master/sample/src/main/resources/application.conf). Then use `render` function:
+Rendering an `HTML` file instead of plain text requires to specify frontend directory path (`hakker.frontend.frontend-path`) in the [configuration file](https://github.com/ulasakdeniz/hakker-sample/blob/master/src/main/resources/application.conf). Then use `render` function:
 
 ```scala
 path("index") {
@@ -65,5 +65,4 @@ object Boot extends LifeCycle {
 }
 ```
 
-`hakker` provides easy to use WebSocket `Flow`s and OAuth support. For a more detailed example you should see [`sample` app](https://github.com/ulasakdeniz/hakker/tree/master/sample). You can run it by just typing:
-`sbt sample/compile:run`
+`hakker` provides easy to use WebSocket `Flow`s and OAuth support. For a more detailed example you should see [sample app](https://github.com/ulasakdeniz/hakker-sample).
