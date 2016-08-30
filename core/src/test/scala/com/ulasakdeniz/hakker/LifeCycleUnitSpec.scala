@@ -6,7 +6,7 @@ import com.ulasakdeniz.hakker.base.UnitSpec
 class LifeCycleUnitSpec extends UnitSpec {
 
   "config" should {
-    "default to application.conf" in new LifeCycleUnitSpecFixture {
+    "have default value None" in new LifeCycleUnitSpecFixture {
       val config: Config = LifeCycleTest.config.get
       config.getString("hakker.interface") shouldEqual "localhost"
       config.getInt("hakker.port") shouldEqual 9000

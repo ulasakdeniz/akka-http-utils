@@ -11,11 +11,12 @@ import io.circe.{Encoder, Json}
 import io.circe.syntax._
 
 import scala.collection.immutable
+import scala.concurrent.ExecutionContext
 
-trait Controller extends System with Render {
+trait Controller extends Render {
 
-  lazy val config = ConfigFactory.load()
-  val StatusCodes = akka.http.scaladsl.model.StatusCodes
+  override lazy val config = ConfigFactory.load()
+  val StatusCodes          = akka.http.scaladsl.model.StatusCodes
 
   def route: Route
 
@@ -28,12 +29,11 @@ trait Controller extends System with Render {
     } ~ route
   }
 
-  val internalServerError: HttpResponse = HttpResponse(StatusCodes.InternalServerError)
-
   def send(statusCode: StatusCode): Route = complete(statusCode)
 
   def send[T](statusCode: StatusCode, content: T, headers: immutable.Seq[HttpHeader] = Nil)(
-      implicit marshaller: ToEntityMarshaller[T]): Route = {
+      implicit marshaller: ToEntityMarshaller[T],
+      ec: ExecutionContext): Route = {
     val response = Marshal(content)
       .to[ResponseEntity](marshaller, ec)
       .map(entity => {
@@ -42,16 +42,16 @@ trait Controller extends System with Render {
     complete(response)
   }
 
-  def sendJson[T](statusCode: StatusCode, content: T)(
-      implicit encoder: Encoder[T]): Route = {
+  def sendJson[T](statusCode: StatusCode, content: T)(implicit encoder: Encoder[T],
+                                                      ec: ExecutionContext): Route = {
     sendJson(statusCode, content.asJson)
   }
 
-  def sendJson[T](content: T)(implicit encoder: Encoder[T]): Route = {
+  def sendJson[T](content: T)(implicit encoder: Encoder[T], ec: ExecutionContext): Route = {
     sendJson(StatusCodes.OK, content)
   }
 
-  def sendJson(statusCode: StatusCode, json: Json): Route = {
+  def sendJson(statusCode: StatusCode, json: Json)(implicit ec: ExecutionContext): Route = {
     send(statusCode, Option(json.noSpaces))
   }
 }

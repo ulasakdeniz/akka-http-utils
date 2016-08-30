@@ -1,23 +1,18 @@
 package com.ulasakdeniz.hakker.auth
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials, Location}
 import akka.http.scaladsl.model._
-import akka.stream.ActorMaterializer
+import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials, Location}
 import akka.stream.scaladsl.{Flow, Source}
 import akka.util.ByteString
 import com.ulasakdeniz.hakker.base.UnitSpec
 import org.scalatest.BeforeAndAfterAll
 
-import scala.concurrent.Future
 import scala.collection.immutable.Seq
+import scala.concurrent.Future
 
 class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
 
-  implicit val system = ActorSystem("test")
-  implicit val mat = ActorMaterializer()
-  val http = Http()(system)
+  import com.ulasakdeniz.hakker.System._
 
   override def afterAll(): Unit = {
     system.terminate()
@@ -296,7 +291,7 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
       )
 
       doReturn(headerParams)
-        .when(spiedOAuth1Companion)
+        .when(spiedOAuth1Helper)
         .headerParams(authenticationHeader)
 
       val httpMethod: HttpMethod = HttpMethods.POST
@@ -319,10 +314,11 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
 
     object TestOAuth1Helper extends AbstractOAuth1Helper
 
-    val spiedOAuth1Companion = spy(TestOAuth1Helper)
+    val spiedOAuth1Helper = spy(TestOAuth1Helper)
 
-    object TestOAuth1 extends OAuth1(consumerSecret)(spiedHttp, mat) {
-      override val helper = spiedOAuth1Companion
+    object TestOAuth1 extends OAuth1(consumerSecret) {
+      override lazy val http = spiedHttp
+      override val helper = spiedOAuth1Helper
     }
 
     val spiedOAuth1 = spy(TestOAuth1)

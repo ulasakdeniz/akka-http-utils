@@ -4,7 +4,7 @@ import scala.util.Random
 
 object OAuth1Helper extends AbstractOAuth1Helper
 
-abstract class AbstractOAuth1Helper {
+private[auth] abstract class AbstractOAuth1Helper {
 
   // http://oauth.net/core/1.0/#auth_header
   val consumer_key     = "oauth_consumer_key"

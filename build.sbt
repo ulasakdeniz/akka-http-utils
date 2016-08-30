@@ -1,6 +1,6 @@
 val projectName = "hakker"
 
-val akkaVersion = "2.4.7"
+val akkaVersion = "2.4.9"
 val scalaTestVersion = "2.2.6"
 val circeVersion = "0.4.1"
 
@@ -20,7 +20,7 @@ val commonSettings = Seq(
   bintrayOrganization in bintray := None,
   parallelExecution in Test := false,
   publishArtifact in Test := false,
-  scalacOptions := Seq("-unchecked", "-encoding", "utf8")
+  scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8")
 )
 
 lazy val root = Project(projectName, file("."))
@@ -35,7 +35,6 @@ lazy val core = (project in file("core"))
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor",
       "com.typesafe.akka" %% "akka-stream",
-      "com.typesafe.akka" %% "akka-persistence",
       "com.typesafe.akka" %% "akka-http-core",
       "com.typesafe.akka" %% "akka-http-experimental",
       "com.typesafe.akka" %% "akka-stream-testkit",

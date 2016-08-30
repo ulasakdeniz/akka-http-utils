@@ -10,7 +10,7 @@ class ServerUnitSpec extends UnitSpec with ScalatestRouteTest {
 
   "config" should {
     "have defaultConfig value if configOpt is None" in new ServerUnitSpecFixture {
-      TestServer.config shouldEqual TestServer.defaultConfig
+      TestServer.config shouldEqual defaultConfig
     }
 
     "have value of configOpt if it is not None" in {
@@ -41,7 +41,7 @@ class ServerUnitSpec extends UnitSpec with ScalatestRouteTest {
       result shouldEqual expected
     }
 
-    "be fallbacked by defaultConfig if a field is missing" in {
+    "be fallbacked by defaultConfig if a field is missing" in new ServerUnitSpecFixture {
       val hakkerConfigString =
         """
           |hakker {
@@ -62,7 +62,7 @@ class ServerUnitSpec extends UnitSpec with ScalatestRouteTest {
       val result = TestServerWithConfig.config
       val loglevel = "akka.loglevel"
 
-      result.getString(loglevel) shouldEqual TestServerWithConfig.defaultConfig.getString(loglevel)
+      result.getString(loglevel) shouldEqual defaultConfig.getString(loglevel)
     }
   }
 
@@ -83,8 +83,10 @@ class ServerUnitSpec extends UnitSpec with ScalatestRouteTest {
   }
 
   trait ServerUnitSpecFixture {
-    val TestServer = new Server()
+    val configName = "hakker"
+    lazy val defaultConfig = ConfigFactory.load(configName).getConfig(configName)
 
+    val TestServer = new Server()
     val spiedServer = spy(TestServer)
   }
 }
