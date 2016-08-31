@@ -55,8 +55,8 @@ class OAuth1(consumerSecret: String, consumerKey: String) extends System {
           val responseTokenOpt = parseResponseTokens(data)
           val oAuthResponseOpt = for {
             tokens: Map[String, String] <- responseTokenOpt
-            _: String                   <- tokens.get(helper.token)
-            _: String                   <- tokens.get(helper.token_secret)
+            _: String                   <- tokens.get(OAuth1Contract.token)
+            _: String                   <- tokens.get(OAuth1Contract.token_secret)
           } yield AccessTokenSuccess(tokens)
           oAuthResponseOpt.getOrElse(AuthenticationFailed(hr))
         })
@@ -123,11 +123,11 @@ class OAuth1(consumerSecret: String, consumerKey: String) extends System {
                                                redirectUri: String,
                                                hr: HttpResponse): Option[OAuthResponse] =
     for {
-      isCallbackConfirmed: String <- tokens.get(helper.callback_confirmed)
-      oauthToken: String          <- tokens.get(helper.token)
+      isCallbackConfirmed: String <- tokens.get(OAuth1Contract.callback_confirmed)
+      oauthToken: String          <- tokens.get(OAuth1Contract.token)
     } yield {
       if (isCallbackConfirmed == "true") {
-        val redirectUriWithParam = s"$redirectUri?${helper.token}=$oauthToken"
+        val redirectUriWithParam = s"$redirectUri?${OAuth1Contract.token}=$oauthToken"
         val redirectResponse = HttpResponse(
           status = StatusCodes.Found,
           headers = Seq(Location(redirectUriWithParam))
