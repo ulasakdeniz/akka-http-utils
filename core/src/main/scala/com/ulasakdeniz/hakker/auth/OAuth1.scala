@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Try
 
-class OAuth1(consumerSecret: String) extends System {
+class OAuth1(consumerSecret: String, consumerKey: String) extends System {
 
   private[auth] val helper: AbstractOAuth1Helper = OAuth1Helper
 
@@ -23,11 +23,9 @@ class OAuth1(consumerSecret: String) extends System {
     graph.run()
   }
 
-  def requestToken(consumerKey: String,
-                   requestUri: String,
-                   redirectUri: String): Future[OAuthResponse] = {
-    val oAuthRequest: HttpRequest      = httpRequestForRequestToken(consumerKey, requestUri)
-    val response: Future[HttpResponse] = http.singleRequest(oAuthRequest)
+  def requestToken(requestUri: String, redirectUri: String): Future[OAuthResponse] = {
+    val request: HttpRequest           = httpRequestForRequestToken(requestUri)
+    val response: Future[HttpResponse] = http.singleRequest(request)
 
     response.flatMap {
       case hr @ HttpResponse(StatusCodes.OK, _, entity, _) => {
@@ -47,7 +45,7 @@ class OAuth1(consumerSecret: String) extends System {
   }
 
   def accessToken(params: Map[String, String], uri: String): Future[OAuthResponse] = {
-    val request                        = httpRequestForAccessToken(params, uri)
+    val request: HttpRequest           = httpRequestForAccessToken(params, uri)
     val response: Future[HttpResponse] = http.singleRequest(request)
 
     response.flatMap {
@@ -71,28 +69,43 @@ class OAuth1(consumerSecret: String) extends System {
     }
   }
 
-  private[auth] def httpRequestForAccessToken(params: Map[String, String],
-                                              uri: String): HttpRequest = {
-    HttpRequest(
-        method = HttpMethods.POST,
-        uri = uri,
-        headers = Seq(Authorization(GenericHttpCredentials("OAuth", params)))
+  def authenticateRequest(request: HttpRequest, token: String, tokenSecret: String): HttpRequest = {
+    val params = AuthenticationHeader(
+      request.method.value,
+      request.uri.toString,
+      consumerKey,
+      consumerSecret,
+      Some(token, tokenSecret)
+    )
+    val headerParamsForRequest = helper.headerParams(params)
+    request.withHeaders(
+      request.headers ++ Seq(
+        Authorization(GenericHttpCredentials("OAuth", headerParamsForRequest))
+      )
     )
   }
 
-  private[auth] def httpRequestForRequestToken(consumerKey: String, uri: String): HttpRequest = {
-    val httpMethod: HttpMethod = HttpMethods.POST
+  private[auth] def httpRequestForAccessToken(params: Map[String, String],
+                                              uri: String): HttpRequest = {
     HttpRequest(
-        method = httpMethod,
-        uri = uri,
-        headers = Seq(
-            Authorization(
-                GenericHttpCredentials(
-                    "OAuth",
-                    helper.headerParams(
+      method = HttpMethods.POST,
+      uri = uri,
+      headers = Seq(Authorization(GenericHttpCredentials("OAuth", params)))
+    )
+  }
+
+  private[auth] def httpRequestForRequestToken(uri: String): HttpRequest = {
+    val httpMethod: HttpMethod = HttpMethods.POST
+    HttpRequest(method = httpMethod,
+                uri = uri,
+                headers = Seq(
+                  Authorization(
+                    GenericHttpCredentials(
+                      "OAuth",
+                      helper.headerParams(
                         AuthenticationHeader(httpMethod.value, uri, consumerKey, consumerSecret)
-                    )))
-        ))
+                      )))
+                ))
   }
 
   private[auth] def parseResponseTokens(data: ByteString): Option[Map[String, String]] =
@@ -116,8 +129,8 @@ class OAuth1(consumerSecret: String) extends System {
       if (isCallbackConfirmed == "true") {
         val redirectUriWithParam = s"$redirectUri?${helper.token}=$oauthToken"
         val redirectResponse = HttpResponse(
-            status = StatusCodes.Found,
-            headers = Seq(Location(redirectUriWithParam))
+          status = StatusCodes.Found,
+          headers = Seq(Location(redirectUriWithParam))
         )
         RedirectionSuccess(redirectResponse, tokens)
       } else {
