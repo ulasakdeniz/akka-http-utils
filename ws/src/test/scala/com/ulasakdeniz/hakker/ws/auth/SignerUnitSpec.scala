@@ -1,4 +1,4 @@
-package com.ulasakdeniz.hakker.auth
+package com.ulasakdeniz.hakker.ws.auth
 
 import com.ulasakdeniz.hakker.base.UnitSpec
 

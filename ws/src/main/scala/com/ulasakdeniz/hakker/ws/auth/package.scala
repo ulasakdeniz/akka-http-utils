@@ -1,4 +1,4 @@
-package com.ulasakdeniz.hakker
+package com.ulasakdeniz.hakker.ws
 
 import akka.http.scaladsl.model.HttpResponse
 

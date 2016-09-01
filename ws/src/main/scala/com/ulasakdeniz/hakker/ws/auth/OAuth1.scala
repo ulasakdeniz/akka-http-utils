@@ -1,11 +1,11 @@
-package com.ulasakdeniz.hakker.auth
+package com.ulasakdeniz.hakker.ws.auth
 
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials, Location}
 import akka.stream.scaladsl.{Flow, Keep, RunnableGraph, Sink, Source}
 import akka.util.ByteString
 import com.ulasakdeniz.hakker.System
-import com.ulasakdeniz.hakker.auth.OAuthResponse._
+import com.ulasakdeniz.hakker.ws.auth.OAuthResponse._
 
 import scala.collection.immutable.Seq
 import scala.concurrent.ExecutionContext.Implicits.global

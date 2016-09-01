@@ -23,10 +23,10 @@ val commonSettings = Seq(
   scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8")
 )
 
-lazy val root = Project(projectName, file("."))
+lazy val hakker = (project in file("."))
   .enablePlugins(GitVersioning)
   .settings(commonSettings: _*)
-  .aggregate(core)
+  .aggregate(core, ws)
 
 lazy val core = (project in file("core"))
   .settings(commonSettings: _*)
@@ -50,3 +50,9 @@ lazy val core = (project in file("core"))
     ).map(_ % circeVersion)
   )
   .settings(name := s"$projectName-core")
+
+lazy val ws = (project in file("ws"))
+  .settings(commonSettings: _*)
+  .settings(publishArtifact := true)
+  .settings(name := s"$projectName-ws")
+  .dependsOn(core, core % "test->test")

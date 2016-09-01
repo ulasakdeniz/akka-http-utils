@@ -1,4 +1,4 @@
-package com.ulasakdeniz.hakker.auth
+package com.ulasakdeniz.hakker.ws.auth
 
 import java.util.Base64
 import javax.crypto.Mac

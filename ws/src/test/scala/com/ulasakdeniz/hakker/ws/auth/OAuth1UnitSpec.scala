@@ -1,4 +1,4 @@
-package com.ulasakdeniz.hakker.auth
+package com.ulasakdeniz.hakker.ws.auth
 
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials, Location}
