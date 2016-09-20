@@ -15,7 +15,7 @@ trait System {
 }
 
 object System {
-  val config                               = ConfigFactory.load()
+  val config                               = ConfigFactory.load("hakker")
   implicit lazy val system: ActorSystem    = ActorSystem("app", config)
   implicit lazy val mat: ActorMaterializer = ActorMaterializer()(system)
   lazy val http                            = Http(system)

@@ -10,7 +10,6 @@ import scala.reflect.ClassTag
 trait UnitSpec extends SuperSpec with MockitoSugar with MockitoMocker
 
 // a copy of the specs2/mock/src/main/scala/org/specs2/mock/mockito/MockitoMocker.scala
-// TODO: figure out a way to do route testing with specs2 and change scalatest to specs2
 
 trait MockitoMocker {
   def verify(mode: VerificationMode): List[Int] =

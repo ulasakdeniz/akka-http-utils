@@ -20,6 +20,8 @@ class ServerUnitSpec extends UnitSpec with ScalatestRouteTest {
           |  interface = "ulasakdeniz.com"
           |  port = 9000
           |
+          |  http-client.timeout = 10
+          |
           |  akka {
           |    loglevel = "INFO"
           |  }

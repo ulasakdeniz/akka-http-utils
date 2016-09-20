@@ -1,18 +1,22 @@
 package com.ulasakdeniz.hakker.ws.http
 
-import akka.http.scaladsl.model.{HttpMethod, HttpMethods, HttpRequest, HttpResponse}
-import com.ulasakdeniz.hakker.System
+import akka.http.scaladsl.model._
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
-object HttpClient extends System {
+object HttpClient extends AbstractHttpClient
 
-  def makeRequest(uri: String, method: HttpMethod = HttpMethods.GET): Future[HttpResponse] = {
-    val request = HttpRequest(method, uri)
-    makeRequest(request)
-  }
+abstract class AbstractHttpClient extends HttpClientApi {
 
-  def makeRequest(request: HttpRequest): Future[HttpResponse] = {
+  def execute(request: HttpRequest): Future[HttpResponse] =
     http.singleRequest(request)
+
+  /**
+    * Returns a failed Future (TimeoutException) if entity cannot be consumed after timeout
+    */
+  def execute(request: HttpRequest, timeout: FiniteDuration): Future[HttpResponse] = {
+    val responseF = http.singleRequest(request)
+    responseF.flatMap(response => response.toStrict(timeout))
   }
 }
