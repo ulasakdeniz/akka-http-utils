@@ -3,7 +3,7 @@ package com.ulasakdeniz.hakker.base
 import org.mockito.InOrder
 import org.mockito.stubbing.{OngoingStubbing, Stubber}
 import org.mockito.verification.VerificationMode
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 import scala.reflect.ClassTag
 

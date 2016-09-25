@@ -1,7 +1,7 @@
 val projectName = "hakker"
 
 val akkaVersion = "2.4.9"
-val scalaTestVersion = "2.2.6"
+val scalaTestVersion = "3.0.0"
 val circeVersion = "0.4.1"
 
 resolvers += Resolver.jcenterRepo
@@ -14,7 +14,7 @@ val commonSettings = Seq(
   description := "akka-http web framework",
   licenses := Seq("MIT" -> url("https://github.com/ulasakdeniz/hakker/blob/master/LICENSE")),
   homepage := Some(url("https://github.com/ulasakdeniz/hakker")),
-  version := "0.1.1-SNAPSHOT",
+  version := "0.1.1",
   scalaVersion := "2.11.8",
   publishMavenStyle := true,
   bintrayOrganization in bintray := None,
