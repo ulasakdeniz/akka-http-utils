@@ -5,7 +5,6 @@ import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials, 
 import akka.stream.scaladsl.{Flow, Keep, RunnableGraph, Sink, Source}
 import akka.util.ByteString
 import com.ulasakdeniz.hakker.System
-import com.ulasakdeniz.hakker.ws.auth.OAuthResponse._
 
 import scala.collection.immutable.Seq
 import scala.concurrent.ExecutionContext.Implicits.global

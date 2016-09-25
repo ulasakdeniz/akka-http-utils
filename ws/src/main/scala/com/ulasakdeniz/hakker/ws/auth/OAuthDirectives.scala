@@ -5,10 +5,8 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.util.FastFuture
 import akka.http.scaladsl.util.FastFuture._
-import com.ulasakdeniz.hakker.ws.auth.OAuthResponse.AuthenticationFailed
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
 
 trait OAuthDirectives {
   type TokenOpt = Option[Map[String, String]]
@@ -16,15 +14,8 @@ trait OAuthDirectives {
   val oauthInfo: OAuthInfo
   lazy val oauth = new OAuth1(oauthInfo)
 
-  private def authDirective(future: Future[OAuthResponse]): Directive1[OAuthResponse] = {
-    onComplete(future).flatMap {
-      case Success(r) => {
-        provide(r)
-      }
-      case Failure(_) => {
-        complete(HttpResponse(StatusCodes.InternalServerError))
-      }
-    }
+  private[auth] def authDirective(future: Future[OAuthResponse]): Directive1[OAuthResponse] = {
+    onSuccess(future).flatMap(r => provide(r))
   }
 
   def authenticate: Directive1[OAuthResponse] = {

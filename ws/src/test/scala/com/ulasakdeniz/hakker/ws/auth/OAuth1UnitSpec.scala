@@ -24,11 +24,11 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
       new OAuth1UnitSpecFixture {
         val tokens: Map[String, String] = Map("k" -> "v")
         val data                        = ByteString("data")
-        val expected                    = OAuthResponse.RedirectionSuccess(HttpResponse().withEntity(data), tokens)
+        val expected                    = RedirectionSuccess(HttpResponse().withEntity(data), tokens)
 
         val source: Source[ByteString, _] = Source(List(data))
         val flow = Flow[ByteString].map(b => {
-          OAuthResponse.RedirectionSuccess(HttpResponse().withEntity(b), tokens)
+          RedirectionSuccess(HttpResponse().withEntity(b), tokens)
         })
         val result = TestOAuth1.runGraph(source, flow)
         result.futureValue shouldEqual expected
@@ -50,7 +50,7 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
                                   headers =
                                     collection.immutable.Seq(Location(redirectUriWithParam)))
 
-      val expected = OAuthResponse.RedirectionSuccess(response, tokens)
+      val expected = RedirectionSuccess(response, tokens)
 
       val source = Source[ByteString](List(data))
       val flow   = Flow[ByteString].map(data => expected)
@@ -78,7 +78,7 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
 
       val hr = HttpResponse().withEntity(data)
 
-      val expected = OAuthResponse.TokenFailed(hr)
+      val expected = TokenFailed(hr)
 
       val source = Source[ByteString](List(data))
       val flow   = Flow[ByteString].map(data => expected)
@@ -107,7 +107,7 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
 
       val hr = HttpResponse().withEntity(data)
 
-      val expected = OAuthResponse.TokenFailed(hr)
+      val expected = TokenFailed(hr)
 
       val source = Source[ByteString](List(data))
       val flow   = Flow[ByteString].map(data => expected)
@@ -129,7 +129,7 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
       val request: HttpRequest = HttpRequest().withEntity("data")
 
       val hr       = HttpResponse(status = StatusCodes.Unauthorized)
-      val expected = OAuthResponse.AuthenticationFailed(hr)
+      val expected = AuthenticationFailed(hr)
 
       doReturn(request).when(spiedOAuth1).httpRequestForRequestToken
 
@@ -150,14 +150,12 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
         OAuth1Contract.token_secret -> "secret"
       )
       val data     = ByteString("data")
-      val expected = OAuthResponse.AccessTokenSuccess(tokens)
+      val expected = AccessTokenSuccess(tokens)
 
       val source = Source[ByteString](List(data))
       val flow   = Flow[ByteString].map(data => expected)
 
-      doReturn(request)
-        .when(spiedOAuth1)
-        .httpRequestForAccessToken(Map.empty[String, String])
+      doReturn(request).when(spiedOAuth1).httpRequestForAccessToken(Map.empty[String, String])
 
       // gives error when doReturn().when() style used
       when(spiedHttp.singleRequest(request)(mat))
@@ -178,14 +176,12 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
       )
       val data     = ByteString("data")
       val response = HttpResponse().withEntity(data)
-      val expected = OAuthResponse.AuthenticationFailed(response)
+      val expected = AuthenticationFailed(response)
 
       val source = Source[ByteString](List(data))
       val flow   = Flow[ByteString].map(data => expected)
 
-      doReturn(request)
-        .when(spiedOAuth1)
-        .httpRequestForAccessToken(Map.empty[String, String])
+      doReturn(request).when(spiedOAuth1).httpRequestForAccessToken(Map.empty[String, String])
 
       // gives error when doReturn().when() style used
       when(spiedHttp.singleRequest(request)(mat)).thenReturn(Future.successful(response))
@@ -202,11 +198,9 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
       val request: HttpRequest = HttpRequest().withUri("uri").withEntity("data")
       val errorCode            = 400
       val response             = HttpResponse(errorCode)
-      val expected             = OAuthResponse.AuthenticationFailed(response)
+      val expected             = AuthenticationFailed(response)
 
-      doReturn(request)
-        .when(spiedOAuth1)
-        .httpRequestForAccessToken(Map.empty[String, String])
+      doReturn(request).when(spiedOAuth1).httpRequestForAccessToken(Map.empty[String, String])
 
       when(spiedHttp.singleRequest(request)(mat)).thenReturn(Future.successful(response))
 
