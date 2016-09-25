@@ -20,7 +20,7 @@ private[auth] abstract class AbstractOAuth1Helper {
     )
     val params = header.tokenOpt.map(t => parameterMap + (token -> t._1)).getOrElse(parameterMap)
     val generatedSignature = Signer.generateSignature(header.httpMethod,
-                                                      header.uri,
+                                                      header.uri.toString(),
                                                       params.toList,
                                                       header.consumerSecret,
                                                       oAuthTokenSecret =

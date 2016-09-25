@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Try
 
-class OAuth1(consumerSecret: String, consumerKey: String) extends System {
+class OAuth1(info: OAuthInfo) extends System {
 
   private[auth] val helper: AbstractOAuth1Helper = OAuth1Helper
 
@@ -23,8 +23,8 @@ class OAuth1(consumerSecret: String, consumerKey: String) extends System {
     graph.run()
   }
 
-  def requestToken(requestUri: String, redirectUri: String): Future[OAuthResponse] = {
-    val request: HttpRequest           = httpRequestForRequestToken(requestUri)
+  def requestToken: Future[OAuthResponse] = {
+    val request: HttpRequest           = httpRequestForRequestToken
     val response: Future[HttpResponse] = http.singleRequest(request)
 
     response.flatMap {
@@ -33,7 +33,7 @@ class OAuth1(consumerSecret: String, consumerKey: String) extends System {
         val flow: Flow[ByteString, OAuthResponse, _] = Flow[ByteString].map(data => {
           val responseTokenOpt = parseResponseTokens(data)
           responseTokenOpt
-            .flatMap(tokens => requestToken2OauthResponse(tokens, redirectUri, hr))
+            .flatMap(tokens => requestToken2OauthResponse(tokens, hr))
             .getOrElse(TokenFailed(hr))
         })
         runGraph(entitySource, flow)
@@ -44,8 +44,8 @@ class OAuth1(consumerSecret: String, consumerKey: String) extends System {
     }
   }
 
-  def accessToken(params: Map[String, String], uri: String): Future[OAuthResponse] = {
-    val request: HttpRequest           = httpRequestForAccessToken(params, uri)
+  def accessToken(params: Map[String, String]): Future[OAuthResponse] = {
+    val request: HttpRequest           = httpRequestForAccessToken(params)
     val response: Future[HttpResponse] = http.singleRequest(request)
 
     response.flatMap {
@@ -72,9 +72,9 @@ class OAuth1(consumerSecret: String, consumerKey: String) extends System {
   def authenticateRequest(request: HttpRequest, token: String, tokenSecret: String): HttpRequest = {
     val params = AuthenticationHeader(
       request.method.value,
-      request.uri.toString,
-      consumerKey,
-      consumerSecret,
+      request.uri,
+      info.consumerKey,
+      info.consumerSecret,
       Some(token, tokenSecret)
     )
     val headerParamsForRequest = helper.headerParams(params)
@@ -85,27 +85,27 @@ class OAuth1(consumerSecret: String, consumerKey: String) extends System {
     )
   }
 
-  private[auth] def httpRequestForAccessToken(params: Map[String, String],
-                                              uri: String): HttpRequest = {
+  private[auth] def httpRequestForAccessToken(params: Map[String, String]): HttpRequest = {
     HttpRequest(
       method = HttpMethods.POST,
-      uri = uri,
+      uri = info.accessTokenUri,
       headers = Seq(Authorization(GenericHttpCredentials("OAuth", params)))
     )
   }
 
-  private[auth] def httpRequestForRequestToken(uri: String): HttpRequest = {
+  private[auth] def httpRequestForRequestToken: HttpRequest = {
     val httpMethod: HttpMethod = HttpMethods.POST
-    HttpRequest(method = httpMethod,
-                uri = uri,
-                headers = Seq(
-                  Authorization(
-                    GenericHttpCredentials(
-                      "OAuth",
-                      helper.headerParams(
-                        AuthenticationHeader(httpMethod.value, uri, consumerKey, consumerSecret)
-                      )))
-                ))
+    val authenticationHeader = AuthenticationHeader(
+      httpMethod.value,
+      info.requestTokenUri,
+      info.consumerKey,
+      info.consumerSecret
+    )
+    HttpRequest(
+      method = httpMethod,
+      uri = info.requestTokenUri,
+      headers = Seq(
+        Authorization(GenericHttpCredentials("OAuth", helper.headerParams(authenticationHeader)))))
   }
 
   private[auth] def parseResponseTokens(data: ByteString): Option[Map[String, String]] =
@@ -120,14 +120,13 @@ class OAuth1(consumerSecret: String, consumerKey: String) extends System {
     }.toOption
 
   private[auth] def requestToken2OauthResponse(tokens: Map[String, String],
-                                               redirectUri: String,
                                                hr: HttpResponse): Option[OAuthResponse] =
     for {
       isCallbackConfirmed: String <- tokens.get(OAuth1Contract.callback_confirmed)
       oauthToken: String          <- tokens.get(OAuth1Contract.token)
     } yield {
       if (isCallbackConfirmed == "true") {
-        val redirectUriWithParam = s"$redirectUri?${OAuth1Contract.token}=$oauthToken"
+        val redirectUriWithParam = s"${info.authenticationUri}?${OAuth1Contract.token}=$oauthToken"
         val redirectResponse = HttpResponse(
           status = StatusCodes.Found,
           headers = Seq(Location(redirectUriWithParam))

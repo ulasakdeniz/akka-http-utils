@@ -1,14 +1,24 @@
 package com.ulasakdeniz.hakker.ws
 
-import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.{HttpResponse, Uri}
 
 package object auth {
 
-  final case class AuthenticationHeader(httpMethod: String,
-                                        uri: String,
-                                        consumerKey: String,
-                                        consumerSecret: String,
-                                        tokenOpt: Option[(String, String)] = None)
+  final case class AuthenticationHeader(
+      httpMethod: String,
+      uri: Uri,
+      consumerKey: String,
+      consumerSecret: String,
+      tokenOpt: Option[(String, String)] = None
+  )
+
+  final case class OAuthInfo(
+      consumerKey: String,
+      consumerSecret: String,
+      requestTokenUri: String,
+      accessTokenUri: String,
+      authenticationUri: String
+  )
 
   sealed trait OAuthResponse
   sealed trait OAuthSuccessfulResponse extends OAuthResponse
