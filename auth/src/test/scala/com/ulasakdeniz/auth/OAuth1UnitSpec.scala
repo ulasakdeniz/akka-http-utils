@@ -83,10 +83,10 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
 
       val hr: HttpResponse = HttpResponse().withEntity(data)
 
-      val expected = TokenFailed(hr)
+      val expected = RequestTokenFailed(hr)
 
       val source: Source[ByteString, NotUsed] = Source[ByteString](List(data))
-      val flow: Flow[ByteString, TokenFailed, NotUsed] = Flow[ByteString].map(_ => expected)
+      val flow: Flow[ByteString, RequestTokenFailed, NotUsed] = Flow[ByteString].map(_ => expected)
 
       doReturn(request).when(spiedOAuth1).httpRequestForRequestToken
 
@@ -112,10 +112,10 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
 
       val hr: HttpResponse = HttpResponse().withEntity(data)
 
-      val expected = TokenFailed(hr)
+      val expected = RequestTokenFailed(hr)
 
       val source: Source[ByteString, NotUsed] = Source[ByteString](List(data))
-      val flow: Flow[ByteString, TokenFailed, NotUsed] = Flow[ByteString].map(_ => expected)
+      val flow: Flow[ByteString, RequestTokenFailed, NotUsed] = Flow[ByteString].map(_ => expected)
 
       doReturn(request).when(spiedOAuth1).httpRequestForRequestToken
 

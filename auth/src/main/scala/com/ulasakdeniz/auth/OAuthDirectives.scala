@@ -12,16 +12,16 @@ trait OAuthDirectives {
   val oAuthContext: OAuthContext
   lazy val oauth = new OAuth1(oAuthContext)
 
-  def authenticateOAuth: Directive1[OAuthResponse] = {
+  def authenticateOAuth: Directive1[RequestTokenResponse] = {
     val oAuthResponseF = oauth.requestToken
     onSuccess(oAuthResponseF)
   }
 
-  def oauthCallback(tokenProvider: (String, String) => Tokens): Directive1[OAuthResponse] = {
+  def oauthCallback(tokenProvider: (String, String) => Tokens): Directive1[AccessTokenResponse] = {
     oauthCallbackAsync((t, v) => FastFuture.successful(tokenProvider(t, v)))
   }
 
-  def oauthCallbackAsync(tokenProvider: (String, String) => Future[Tokens]): Directive1[OAuthResponse] = {
+  def oauthCallbackAsync(tokenProvider: (String, String) => Future[Tokens]): Directive1[AccessTokenResponse] = {
     parameters('oauth_token, 'oauth_verifier).tflatMap { extractedTuple =>
       import oAuthContext.system.dispatcher
       val tokenF = tokenProvider(extractedTuple._1, extractedTuple._2)

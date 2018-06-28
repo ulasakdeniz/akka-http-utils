@@ -21,25 +21,25 @@ class OAuth1(context: OAuthContext) {
   private[auth] val http = Http()
   private[auth] val helper: AbstractOAuth1Helper = OAuth1Helper
 
-  private[auth] def runGraph(
+  private[auth] def runGraph[T](
     source: Source[ByteString, _],
-    flow: Flow[ByteString, OAuthResponse, _]): Future[OAuthResponse] = {
-    val graph: RunnableGraph[Future[OAuthResponse]] = source.via(flow).toMat(Sink.head[OAuthResponse])(Keep.right)
+    flow: Flow[ByteString, T, _]): Future[T] = {
+    val graph: RunnableGraph[Future[T]] = source.via(flow).toMat(Sink.head[T])(Keep.right)
     graph.run()
   }
 
-  def requestToken: Future[OAuthResponse] = {
+  def requestToken: Future[RequestTokenResponse] = {
     val request: HttpRequest           = httpRequestForRequestToken
     val response: Future[HttpResponse] = http.singleRequest(request)
 
     response.flatMap {
       case hr @ HttpResponse(StatusCodes.OK, _, entity, _) =>
         val entitySource: Source[ByteString, _] = entity.dataBytes
-        val flow: Flow[ByteString, OAuthResponse, _] = Flow[ByteString].map(data => {
+        val flow: Flow[ByteString, RequestTokenResponse, _] = Flow[ByteString].map(data => {
           val responseTokenOpt = parseResponseTokens(data)
           responseTokenOpt
             .flatMap(tokens => requestToken2OauthResponse(tokens, hr))
-            .getOrElse(TokenFailed(hr))
+            .getOrElse(RequestTokenFailed(hr))
         })
         runGraph(entitySource, flow)
 
@@ -48,14 +48,14 @@ class OAuth1(context: OAuthContext) {
     }
   }
 
-  def accessToken(params: Map[String, String]): Future[OAuthResponse] = {
+  def accessToken(params: Map[String, String]): Future[AccessTokenResponse] = {
     val request: HttpRequest           = httpRequestForAccessToken(params)
     val response: Future[HttpResponse] = http.singleRequest(request)
 
     response.flatMap {
       case hr @ HttpResponse(StatusCodes.OK, _, entity, _) =>
         val entitySource = entity.dataBytes
-        val flow: Flow[ByteString, OAuthResponse, _] = Flow[ByteString].map(data => {
+        val flow: Flow[ByteString, AccessTokenResponse, _] = Flow[ByteString].map(data => {
           val responseTokenOpt = parseResponseTokens(data)
           val oAuthResponseOpt = for {
             tokens: Map[String, String] <- responseTokenOpt
@@ -116,10 +116,10 @@ class OAuth1(context: OAuthContext) {
     }.toOption
 
   private[auth] def requestToken2OauthResponse(tokens: Map[String, String],
-                                               hr: HttpResponse): Option[OAuthResponse] =
+                                               hr: HttpResponse): Option[RequestTokenResponse] =
     for {
-      isCallbackConfirmed: String <- tokens.get(OAuth1Contract.callback_confirmed)
-      oauthToken: String          <- tokens.get(OAuth1Contract.token)
+      isCallbackConfirmed <- tokens.get(OAuth1Contract.callback_confirmed)
+      oauthToken          <- tokens.get(OAuth1Contract.token)
     } yield {
       if (isCallbackConfirmed == "true") {
         val redirectUriWithParam = s"$authenticationUri?${OAuth1Contract.token}=$oauthToken"
@@ -129,7 +129,7 @@ class OAuth1(context: OAuthContext) {
         )
         RedirectionSuccess(redirectResponse, tokens)
       } else {
-        TokenFailed(hr)
+        RequestTokenFailed(hr)
       }
     }
 }
