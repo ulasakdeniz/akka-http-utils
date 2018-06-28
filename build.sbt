@@ -10,7 +10,7 @@ val commonSettings = Seq(
   description := "akka-http utilities",
   licenses := Seq("MIT" -> url("https://github.com/ulasakdeniz/hakker/blob/master/LICENSE")),
   homepage := Some(url("https://github.com/ulasakdeniz/hakker")),
-  version := "0.1.1",
+  version := "0.1.1-SNAPSHOT",
   scalaVersion := "2.12.6",
   publishMavenStyle := true,
   bintrayOrganization in bintray := None,
@@ -37,7 +37,7 @@ lazy val auth = (project in file("auth"))
       "com.typesafe.akka" %% "akka-http-testkit"
     ).map(_ % akkaHttpVersion) ++ Seq(
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
-      "org.mockito" % "mockito-core" % "1.10.19"
+      "org.mockito" % "mockito-core" % "1.10.19" % "test"
     )
   )
-  .settings(name := s"$projectName-auth")
+  .settings(name := "auth")
