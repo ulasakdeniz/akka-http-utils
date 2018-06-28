@@ -1,4 +1,4 @@
-package com.ulasakdeniz.utils.auth
+package com.ulasakdeniz.auth
 
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.server.Directives._

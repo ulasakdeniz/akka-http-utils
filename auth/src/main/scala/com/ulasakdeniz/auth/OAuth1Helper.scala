@@ -1,11 +1,10 @@
-package com.ulasakdeniz.utils.auth
+package com.ulasakdeniz.auth
 
 import scala.util.Random
 
 private[auth] object OAuth1Helper extends AbstractOAuth1Helper
 
 private[auth] abstract class AbstractOAuth1Helper {
-
   import OAuth1Contract._
 
   val random = new Random(System.currentTimeMillis())
@@ -18,6 +17,7 @@ private[auth] abstract class AbstractOAuth1Helper {
         timestamp        -> generateTimestamp,
         version          -> version1
     )
+
     val params = header.tokenOpt.map(t => parameterMap + (token -> t._1)).getOrElse(parameterMap)
     val generatedSignature = Signer.generateSignature(header.httpMethod,
                                                       header.uri.toString(),

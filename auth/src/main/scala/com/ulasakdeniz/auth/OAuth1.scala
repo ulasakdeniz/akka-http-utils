@@ -1,4 +1,4 @@
-package com.ulasakdeniz.utils.auth
+package com.ulasakdeniz.auth
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http

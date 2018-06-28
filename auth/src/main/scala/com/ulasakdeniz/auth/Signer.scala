@@ -1,4 +1,4 @@
-package com.ulasakdeniz.utils.auth
+package com.ulasakdeniz.auth
 
 import java.net.URLEncoder
 import java.util.Base64

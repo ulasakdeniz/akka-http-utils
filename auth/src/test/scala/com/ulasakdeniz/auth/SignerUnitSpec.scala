@@ -1,6 +1,6 @@
-package com.ulasakdeniz.utils.auth
+package com.ulasakdeniz.auth
 
-import com.ulasakdeniz.utils.base.UnitSpec
+import com.ulasakdeniz.base.UnitSpec
 
 class SignerUnitSpec extends UnitSpec {
 

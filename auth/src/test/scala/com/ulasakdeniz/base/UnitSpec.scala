@@ -1,4 +1,4 @@
-package com.ulasakdeniz.utils.base
+package com.ulasakdeniz.base
 
 import org.mockito.InOrder
 import org.mockito.stubbing.{OngoingStubbing, Stubber}

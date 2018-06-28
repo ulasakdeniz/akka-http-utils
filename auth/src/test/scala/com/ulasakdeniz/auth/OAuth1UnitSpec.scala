@@ -1,4 +1,4 @@
-package com.ulasakdeniz.utils.auth
+package com.ulasakdeniz.auth
 
 import akka.NotUsed
 import akka.actor.ActorSystem
@@ -8,7 +8,7 @@ import akka.http.scaladsl.{ Http, HttpExt }
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Flow, Source }
 import akka.util.ByteString
-import com.ulasakdeniz.utils.base.UnitSpec
+import com.ulasakdeniz.base.UnitSpec
 import org.scalatest.BeforeAndAfterAll
 
 import scala.collection.immutable.Seq

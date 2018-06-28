@@ -1,4 +1,4 @@
-package com.ulasakdeniz.utils
+package com.ulasakdeniz
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{ HttpResponse, Uri }

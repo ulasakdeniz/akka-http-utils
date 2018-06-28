@@ -1,4 +1,4 @@
-package com.ulasakdeniz.utils.auth
+package com.ulasakdeniz.auth
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{ HttpResponse, StatusCodes }
@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.MissingQueryParamRejection
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.ActorMaterializer
-import com.ulasakdeniz.utils.base.UnitSpec
+import com.ulasakdeniz.base.UnitSpec
 
 import scala.concurrent.Future
 

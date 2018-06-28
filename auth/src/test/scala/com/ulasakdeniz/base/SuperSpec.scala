@@ -1,4 +1,4 @@
-package com.ulasakdeniz.utils.base
+package com.ulasakdeniz.base
 
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Inside, Matchers, OptionValues, WordSpec}
