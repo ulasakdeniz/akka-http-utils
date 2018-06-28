@@ -12,8 +12,12 @@ import scala.collection.immutable.Seq
 import scala.concurrent.Future
 import scala.util.Try
 
-class OAuth1(info: OAuthInfo)(implicit sys: ActorSystem, mat: ActorMaterializer) {
-  import sys.dispatcher
+class OAuth1(context: OAuthContext) {
+  implicit val system: ActorSystem = context.system
+  implicit val materializer: ActorMaterializer = context.materializer
+  import system.dispatcher
+
+  private[auth] val OAuthParams(consumerKey, consumerSecret, requestTokenUri, accessTokenUri, authenticationUri) = context.params
   private[auth] val http = Http()
   private[auth] val helper: AbstractOAuth1Helper = OAuth1Helper
 
@@ -71,10 +75,11 @@ class OAuth1(info: OAuthInfo)(implicit sys: ActorSystem, mat: ActorMaterializer)
     val params = AuthenticationHeader(
       request.method.value,
       request.uri,
-      info.consumerKey,
-      info.consumerSecret,
+      consumerKey,
+      consumerSecret,
       Some(token, tokenSecret)
     )
+
     val headerParamsForRequest = helper.headerParams(params)
     request.withHeaders(
       request.headers ++ Seq(
@@ -84,24 +89,17 @@ class OAuth1(info: OAuthInfo)(implicit sys: ActorSystem, mat: ActorMaterializer)
   }
 
   private[auth] def httpRequestForAccessToken(params: Map[String, String]): HttpRequest = {
-    HttpRequest(
-      method = HttpMethods.POST,
-      uri = info.accessTokenUri,
-      headers = Seq(Authorization(GenericHttpCredentials("OAuth", params)))
-    )
+    val authorizationHeader = Seq(Authorization(GenericHttpCredentials("OAuth", params)))
+    HttpRequest(method = HttpMethods.POST, uri = accessTokenUri, headers = authorizationHeader)
   }
 
   private[auth] def httpRequestForRequestToken: HttpRequest = {
     val httpMethod: HttpMethod = HttpMethods.POST
-    val authenticationHeader = AuthenticationHeader(
-      httpMethod.value,
-      info.requestTokenUri,
-      info.consumerKey,
-      info.consumerSecret
-    )
+    val authenticationHeader = AuthenticationHeader(httpMethod.value, requestTokenUri, consumerKey, consumerSecret)
+
     HttpRequest(
       method = httpMethod,
-      uri = info.requestTokenUri,
+      uri = requestTokenUri,
       headers = Seq(
         Authorization(GenericHttpCredentials("OAuth", helper.headerParams(authenticationHeader)))))
   }
@@ -124,7 +122,7 @@ class OAuth1(info: OAuthInfo)(implicit sys: ActorSystem, mat: ActorMaterializer)
       oauthToken: String          <- tokens.get(OAuth1Contract.token)
     } yield {
       if (isCallbackConfirmed == "true") {
-        val redirectUriWithParam = s"${info.authenticationUri}?${OAuth1Contract.token}=$oauthToken"
+        val redirectUriWithParam = s"$authenticationUri?${OAuth1Contract.token}=$oauthToken"
         val redirectResponse = HttpResponse(
           status = StatusCodes.Found,
           headers = Seq(Location(redirectUriWithParam))

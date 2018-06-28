@@ -288,7 +288,7 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
     val authenticationUri = "authenticationUri"
     val accessTokenUri    = "accessTokenUri"
 
-    val oauthInfo = OAuthInfo(
+    val oAuthParams = OAuthParams(
       consumerKey,
       consumerSecret,
       requestTokenUri,
@@ -296,11 +296,13 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
       authenticationUri
     )
 
+    val oAuthContext = OAuthContext(oAuthParams)
+
     object TestOAuth1Helper extends AbstractOAuth1Helper
 
     val spiedOAuth1Helper = spy(TestOAuth1Helper)
 
-    object TestOAuth1 extends OAuth1(oauthInfo) {
+    object TestOAuth1 extends OAuth1(oAuthContext) {
       override val http: HttpExt = spiedHttp
       override val helper    = spiedOAuth1Helper
     }
