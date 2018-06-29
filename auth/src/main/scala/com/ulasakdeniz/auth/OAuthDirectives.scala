@@ -17,19 +17,21 @@ trait OAuthDirectives {
     onSuccess(oAuthResponseF)
   }
 
-  def oauthCallback(tokenProvider: (String, String) => Tokens): Directive1[AccessTokenResponse] = {
-    oauthCallbackAsync((t, v) => FastFuture.successful(tokenProvider(t, v)))
+  def oauthCallback(tokenProvider: String => Tokens): Directive1[AccessTokenResponse] = {
+    oauthCallbackAsync(token => FastFuture.successful(tokenProvider(token)))
   }
 
-  def oauthCallbackAsync(tokenProvider: (String, String) => Future[Tokens]): Directive1[AccessTokenResponse] = {
-    parameters('oauth_token, 'oauth_verifier).tflatMap { extractedTuple =>
-      import oAuthContext.system.dispatcher
-      val tokenF = tokenProvider(extractedTuple._1, extractedTuple._2)
-      val future = tokenF.fast.flatMap { tokens =>
-        oauth.accessToken(tokens)
-      }
+  def oauthCallbackAsync(tokenProvider: String => Future[Tokens]): Directive1[AccessTokenResponse] = {
+    import oAuthContext.system.dispatcher
+    parameters('oauth_token, 'oauth_verifier).tflatMap {
+      case (token, verifier) =>
+        val tokenF = tokenProvider(token)
+        val future = tokenF.fast.flatMap { tokens =>
+          val verifierTuple = OAuth1Contract.verifier -> verifier
+          oauth.accessToken(tokens + verifierTuple)
+        }
 
-      onSuccess(future)
+        onSuccess(future)
     }
   }
 
@@ -37,4 +39,5 @@ trait OAuthDirectives {
     def addAuthentication(token: String, tokenSecret: String): HttpRequest =
       oauth.authenticateRequest(httpRequest, token, tokenSecret)
   }
+
 }

@@ -44,11 +44,16 @@ class OAuthDirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
   "oauthCallbackAsync" should {
 
     "extract oauth callback query parameters and use them for accessToken" in new OAuthDirectivesFixture {
-      val tokenMap      = Map("a" -> "b")
-      val tokenFun      = (_: String, _: String) => Future.successful(tokenMap)
+      val tokenValue = "hey"
+      val verifierValue = "ho"
+      val tokenMap= Map(OAuth1Contract.token -> tokenValue)
+      val tokenMapWithVerifier: Map[String, String] = tokenMap + (OAuth1Contract.verifier -> verifierValue)
+      val tokenFun: String => Future[Tokens] = _ => Future.successful(tokenMap)
       val oAuthResponse = AccessTokenSuccess(tokenMap)
-      doReturn(Future.successful(oAuthResponse)).when(spiedOAuth1).accessToken(tokenMap)
-      Get("/callback?oauth_token=hey&oauth_verifier=ho") ~> {
+
+      // OAuth1.accessToken method is called with a map included OAuth1Contract.verifier
+      doReturn(Future.successful(oAuthResponse)).when(spiedOAuth1).accessToken(tokenMapWithVerifier)
+      Get(s"/callback?${OAuth1Contract.token}=$tokenValue&${OAuth1Contract.verifier}=$verifierValue") ~> {
         spiedOAuthDirective.oauthCallbackAsync(tokenFun) {
           case AccessTokenSuccess(tokens) =>
             tokens shouldEqual tokenMap
@@ -61,11 +66,11 @@ class OAuthDirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
     }
 
     "reject if query parameters are not oauth_token and oauth_verifier" in new OAuthDirectivesFixture {
-      val tokenMap      = Map("a" -> "b")
-      val tokenFun      = (_: String, _: String) => Future.successful(tokenMap)
+      val tokenMap = Map("a" -> "b")
+      val tokenFun: String => Future[Tokens] = _ => Future.successful(tokenMap)
       val oAuthResponse = AccessTokenSuccess(tokenMap)
       Get("/callback?oauth_token=hey") ~> {
-        DirectiveTest.oauthCallbackAsync(tokenFun) { r =>
+        DirectiveTest.oauthCallbackAsync(tokenFun) { _=>
           complete("couldn't complete")
         }
       } ~> check {
@@ -74,11 +79,17 @@ class OAuthDirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
     }
 
     "give AuthenticationFailed with http response provided if function returns invalid tokens" in new OAuthDirectivesFixture {
-      val tokenMap = Map("a" -> "b")
-      val tokenFun = (_: String, _: String) => Future.successful(tokenMap)
+      val tokenValue = "hey"
+      val verifierValue = "ho"
+      val tokenMap= Map(OAuth1Contract.token -> tokenValue)
+      val tokenMapWithVerifier: Map[String, String] = tokenMap + (OAuth1Contract.verifier -> verifierValue)
+      val tokenFun: String => Future[Tokens] = _ => Future.successful(tokenMap)
+      val oAuthResponse = AccessTokenSuccess(tokenMap)
+
       val response = HttpResponse(StatusCodes.BadRequest)
-      doReturn(Future.successful(AuthenticationFailed(response))).when(spiedOAuth1).accessToken(tokenMap)
-      Get("/callback?oauth_token=hey&oauth_verifier=ho") ~> {
+      doReturn(Future.successful(AuthenticationFailed(response))).when(spiedOAuth1).accessToken(tokenMapWithVerifier)
+
+      Get(s"/callback?${OAuth1Contract.token}=$tokenValue&${OAuth1Contract.verifier}=$verifierValue") ~> {
         DirectiveTest.oauthCallbackAsync(tokenFun) {
           case AuthenticationFailed(hr) =>
             complete(hr)
@@ -90,10 +101,10 @@ class OAuthDirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
     }
 
     "give InternalServerError if function returns a failed Future" in new OAuthDirectivesFixture {
-      val tokenFun = (t: String, v: String) => Future.failed(new Exception)
+      val tokenFun: String => Future[Tokens] = _ => Future.failed(new Exception)
       Get("/callback?oauth_token=hey&oauth_verifier=ho") ~> {
         DirectiveTest.oauthCallbackAsync(tokenFun) {
-          r => complete("couldn't complete")
+          _ => complete("couldn't complete")
         }
       } ~> check {
         status shouldEqual StatusCodes.InternalServerError
