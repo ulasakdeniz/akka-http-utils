@@ -11,8 +11,7 @@ import com.ulasakdeniz.base.UnitSpec
 import scala.concurrent.Future
 
 class OAuth1DirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
-
-  private val _system: ActorSystem = ActorSystem("oauth-directive-test")
+  private val _system: ActorSystem = ActorSystem("oauth1-directive-test")
   private val _mat: ActorMaterializer = ActorMaterializer()
 
   override protected def afterAll(): Unit = {
@@ -21,7 +20,6 @@ class OAuth1DirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
   }
 
   "authenticate" should {
-
     "call OAuth1.requestToken and send result to authDirective" in new OAuthDirectivesFixture {
       val httpResponse  = HttpResponse(entity = "test passed")
       val oauthResponse = RedirectionSuccess(httpResponse, Map.empty)
@@ -42,7 +40,6 @@ class OAuth1DirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
   }
 
   "oauthCallbackAsync" should {
-
     "extract oauth callback query parameters and use them for accessToken" in new OAuthDirectivesFixture {
       val tokenValue = "hey"
       val verifierValue = "ho"
@@ -116,13 +113,13 @@ class OAuth1DirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
     val oauthParams = OAuthParams("key", "secret", "uri", "uri", "uri")
     val context = OAuthContext(_system, _mat, oauthParams)
     object TestOAuthClient extends OAuthClient(context)
-    val spiedOAuth1 = spy(TestOAuthClient)
+    val spiedOAuth1: OAuthClient = spy(TestOAuthClient)
 
     object DirectiveTest extends OAuth1Directives {
       override val oauthContext: OAuthContext = context
       override private[oauth1] lazy val oauthClient = spiedOAuth1
     }
 
-    val spiedOAuthDirective = spy(DirectiveTest)
+    val spiedOAuthDirective: OAuth1Directives = spy(DirectiveTest)
   }
 }

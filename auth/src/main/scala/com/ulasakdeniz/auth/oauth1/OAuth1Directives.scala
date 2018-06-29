@@ -17,9 +17,8 @@ trait OAuth1Directives {
     onSuccess(oauthResponseF)
   }
 
-  def oauthCallback(tokenProvider: String => Tokens): Directive1[AccessTokenResponse] = {
+  def oauthCallback(tokenProvider: String => Tokens): Directive1[AccessTokenResponse] =
     oauthCallbackAsync(token => FastFuture.successful(tokenProvider(token)))
-  }
 
   def oauthCallbackAsync(tokenProvider: String => Future[Tokens]): Directive1[AccessTokenResponse] = {
     import oauthContext.system.dispatcher

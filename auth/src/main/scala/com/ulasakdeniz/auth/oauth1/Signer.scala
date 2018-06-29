@@ -6,11 +6,11 @@ import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-object Signer extends Signer
+private[oauth1] object Signer extends Signer
 
-abstract class Signer {
+private[oauth1] abstract class Signer {
 
-  def encode(input: String): String = {
+  private[oauth1] def encode(input: String): String = {
     // https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters
     URLEncoder.encode(input, "UTF-8")
   }
@@ -27,12 +27,12 @@ abstract class Signer {
     encode(hmac(signingKey, baseString))
   }
 
-  def normalizeEncodeParameters(params: List[(String, String)]): String = {
-    val sorted: List[(String, String)] = params.sortBy(t => t)
+  private[oauth1] def normalizeEncodeParameters(params: List[(String, String)]): String = {
+    val sorted: List[(String, String)] = params.sorted
     sorted.map(t => s"${encode(t._1)}%3D${encode(t._2)}").mkString("%26")
   }
 
-  def hmac(key: String, baseString: String, algorithm: MACAlgorithm = SHA1): String = {
+  private[oauth1] def hmac(key: String, baseString: String, algorithm: MACAlgorithm = SHA1): String = {
     val secretKeySpec = new SecretKeySpec(key.getBytes, algorithm.value)
     val mac           = Mac.getInstance(algorithm.value)
     mac.init(secretKeySpec)

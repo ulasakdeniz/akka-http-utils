@@ -18,13 +18,17 @@ private[oauth1] abstract class AbstractOAuthHelper {
         version          -> version1
     )
 
-    val params = header.tokenOpt.map(t => parameterMap + (token -> t._1)).getOrElse(parameterMap)
-    val generatedSignature = Signer.generateSignature(header.httpMethod,
-                                                      header.uri.toString(),
-                                                      params.toList,
-                                                      header.consumerSecret,
-                                                      oauthTokenSecret =
-                                                        header.tokenOpt.map(t => t._2))
+    val params = header.tokenOpt match {
+      case Some((tokenValue, _)) => parameterMap + (token -> tokenValue)
+      case None                  => parameterMap
+    }
+    val generatedSignature = Signer.generateSignature(
+      header.httpMethod,
+      header.uri.toString(),
+      params.toList,
+      header.consumerSecret,
+      oauthTokenSecret = header.tokenOpt.map(_._2))
+
     params + (signature -> generatedSignature)
   }
 
@@ -33,9 +37,7 @@ private[oauth1] abstract class AbstractOAuthHelper {
     random.alphanumeric.take(nonceLength).mkString
   }
 
-  def generateTimestamp: String = {
-    (System.currentTimeMillis() / 1000L).toString
-  }
+  def generateTimestamp: String = (System.currentTimeMillis() / 1000L).toString
 }
 
 object OAuth1Contract {

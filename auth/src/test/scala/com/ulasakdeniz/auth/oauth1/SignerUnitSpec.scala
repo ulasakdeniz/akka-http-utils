@@ -5,7 +5,6 @@ import com.ulasakdeniz.base.UnitSpec
 class SignerUnitSpec extends UnitSpec {
 
   "encode" should {
-
     "percent-encode the given string" in new SignerUnitSpecFixture {
       val input = "http://akka.io"
       val expected = "http%3A%2F%2Fakka.io"
@@ -15,7 +14,6 @@ class SignerUnitSpec extends UnitSpec {
   }
 
   "normalizeEncodeParameters" should {
-
     "sort and encode elements of List[(String, String)]" in new SignerUnitSpecFixture {
       val expected = "a%3Da%26a%3Da"
 
@@ -26,10 +24,9 @@ class SignerUnitSpec extends UnitSpec {
   }
 
   "hmac" should {
-
     "hash the signing key and base string with HmacSHA1 if a different algorithm not specified" in
       new SignerUnitSpecFixture {
-        val result = TestSigner.hmac(key, baseString)
+        val result: String = TestSigner.hmac(key, baseString)
         val expected = "3nybhbi3iqa8ino29wqQcBydtNk="
 
         result shouldEqual expected
@@ -37,7 +34,7 @@ class SignerUnitSpec extends UnitSpec {
 
     "hash the signing key and base string with HmacMD5 if explicitly passed" in
       new SignerUnitSpecFixture {
-        val result = TestSigner.hmac(key, baseString, MD5)
+        val result: String = TestSigner.hmac(key, baseString, MD5)
         val expected = "gAcHE0Y+d0m5DC3CSRHidQ=="
 
         result shouldEqual expected
@@ -55,7 +52,7 @@ class SignerUnitSpec extends UnitSpec {
         val encodedSha1 = "3nybhbi3iqa8ino29wqQcBydtNk%3D"
         val normalizedHeaderParams = "a%3Da%26a%3Da"
         val generatedBaseString = s"POST&$encodedUri&$normalizedHeaderParams"
-        val expected = baseString
+        val expected: String = baseString
 
         doReturn(consumerSecret).when(signerSpy).encode(consumerSecret)
         doReturn(encodedUri).when(signerSpy).encode(uri)
@@ -69,7 +66,7 @@ class SignerUnitSpec extends UnitSpec {
 
   trait SignerUnitSpecFixture {
     object TestSigner extends Signer
-    val signerSpy = spy(TestSigner)
+    val signerSpy: Signer = spy(TestSigner)
 
     val emptyString = ""
     val key = "key"
@@ -80,6 +77,6 @@ class SignerUnitSpec extends UnitSpec {
     val uri = "http://ulasakdeniz.com"
     val encodedUri = "http%3A%2F%2Fulasakdeniz.com"
     val consumerSecret = "Everyone has a secret"
-    val oauthTokenSecret = baseString
+    val oauthTokenSecret: String = baseString
   }
 }
