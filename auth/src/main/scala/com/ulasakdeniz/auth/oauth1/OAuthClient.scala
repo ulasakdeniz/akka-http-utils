@@ -1,4 +1,4 @@
-package com.ulasakdeniz.auth
+package com.ulasakdeniz.auth.oauth1
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -12,16 +12,16 @@ import scala.collection.immutable.Seq
 import scala.concurrent.Future
 import scala.util.Try
 
-class OAuth1(context: OAuthContext) {
+private[oauth1] class OAuthClient(context: OAuthContext) {
   implicit val system: ActorSystem = context.system
   implicit val materializer: ActorMaterializer = context.materializer
   import system.dispatcher
 
-  private[auth] val OAuthParams(consumerKey, consumerSecret, requestTokenUri, accessTokenUri, authenticationUri) = context.params
-  private[auth] val http = Http()
-  private[auth] val helper: AbstractOAuth1Helper = OAuth1Helper
+  private[oauth1] val OAuthParams(consumerKey, consumerSecret, requestTokenUri, accessTokenUri, authenticationUri) = context.params
+  private[oauth1] val http = Http()
+  private[oauth1] val helper: AbstractOAuthHelper = OAuthHelper
 
-  private[auth] def runGraph[T](
+  private[oauth1] def runGraph[T](
     source: Source[ByteString, _],
     flow: Flow[ByteString, T, _]): Future[T] = {
     val graph: RunnableGraph[Future[T]] = source.via(flow).toMat(Sink.head[T])(Keep.right)
@@ -88,12 +88,12 @@ class OAuth1(context: OAuthContext) {
     )
   }
 
-  private[auth] def httpRequestForAccessToken(params: Map[String, String]): HttpRequest = {
+  private[oauth1] def httpRequestForAccessToken(params: Map[String, String]): HttpRequest = {
     val authorizationHeader = Seq(Authorization(GenericHttpCredentials("OAuth", params)))
     HttpRequest(method = HttpMethods.POST, uri = accessTokenUri, headers = authorizationHeader)
   }
 
-  private[auth] def httpRequestForRequestToken: HttpRequest = {
+  private[oauth1] def httpRequestForRequestToken: HttpRequest = {
     val httpMethod: HttpMethod = HttpMethods.POST
     val authenticationHeader = AuthorizationHeader(httpMethod.value, requestTokenUri, consumerKey, consumerSecret)
 
@@ -104,7 +104,7 @@ class OAuth1(context: OAuthContext) {
         Authorization(GenericHttpCredentials("OAuth", helper.headerParams(authenticationHeader)))))
   }
 
-  private[auth] def parseResponseTokens(data: ByteString): Option[Map[String, String]] =
+  private[oauth1] def parseResponseTokens(data: ByteString): Option[Map[String, String]] =
     Try {
       val result = data.utf8String.split("&").toList
       result
@@ -115,7 +115,7 @@ class OAuth1(context: OAuthContext) {
         .toMap[String, String]
     }.toOption
 
-  private[auth] def requestTokenToOAuthResponse(tokens: Map[String, String],
+  private[oauth1] def requestTokenToOAuthResponse(tokens: Map[String, String],
                                                 hr: HttpResponse): Option[RequestTokenResponse] =
     for {
       isCallbackConfirmed <- tokens.get(OAuth1Contract.callback_confirmed)

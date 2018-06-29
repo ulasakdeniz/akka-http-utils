@@ -1,4 +1,4 @@
-package com.ulasakdeniz.auth
+package com.ulasakdeniz.auth.oauth1
 
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.server.Directives._
@@ -8,12 +8,12 @@ import akka.http.scaladsl.util.FastFuture._
 
 import scala.concurrent.Future
 
-trait OAuthDirectives {
+trait OAuth1Directives {
   val oauthContext: OAuthContext
-  lazy val oauth = new OAuth1(oauthContext)
+  private[oauth1] lazy val oauthClient = new OAuthClient(oauthContext)
 
   def authenticateOAuth: Directive1[RequestTokenResponse] = {
-    val oauthResponseF = oauth.requestToken
+    val oauthResponseF = oauthClient.requestToken
     onSuccess(oauthResponseF)
   }
 
@@ -28,7 +28,7 @@ trait OAuthDirectives {
         val tokenF = tokenProvider(token)
         val future = tokenF.fast.flatMap { tokens =>
           val verifierTuple = OAuth1Contract.verifier -> verifier
-          oauth.accessToken(tokens + verifierTuple)
+          oauthClient.accessToken(tokens + verifierTuple)
         }
 
         onSuccess(future)
@@ -37,7 +37,7 @@ trait OAuthDirectives {
 
   implicit class HttpRequestAuthentication(httpRequest: HttpRequest) {
     def withAuthorizationHeader(token: String, tokenSecret: String): HttpRequest =
-      oauth.authorizeRequest(httpRequest, token, tokenSecret)
+      oauthClient.authorizeRequest(httpRequest, token, tokenSecret)
   }
 
 }

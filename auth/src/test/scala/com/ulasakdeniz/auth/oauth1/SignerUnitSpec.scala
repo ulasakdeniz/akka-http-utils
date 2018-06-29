@@ -1,4 +1,4 @@
-package com.ulasakdeniz.auth
+package com.ulasakdeniz.auth.oauth1
 
 import com.ulasakdeniz.base.UnitSpec
 

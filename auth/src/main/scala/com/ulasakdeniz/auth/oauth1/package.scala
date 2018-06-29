@@ -1,10 +1,10 @@
-package com.ulasakdeniz
+package com.ulasakdeniz.auth
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
 import akka.stream.ActorMaterializer
 
-package object auth {
+package object oauth1 {
   type Tokens = Map[String, String]
 
   final case class AuthorizationHeader(

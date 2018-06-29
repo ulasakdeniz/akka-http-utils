@@ -1,10 +1,10 @@
-package com.ulasakdeniz.auth
+package com.ulasakdeniz.auth.oauth1
 
 import scala.util.Random
 
-private[auth] object OAuth1Helper extends AbstractOAuth1Helper
+private[oauth1] object OAuthHelper extends AbstractOAuthHelper
 
-private[auth] abstract class AbstractOAuth1Helper {
+private[oauth1] abstract class AbstractOAuthHelper {
   import OAuth1Contract._
 
   val random = new Random(System.currentTimeMillis())

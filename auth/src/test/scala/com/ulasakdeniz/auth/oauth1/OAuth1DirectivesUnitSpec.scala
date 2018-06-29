@@ -1,4 +1,4 @@
-package com.ulasakdeniz.auth
+package com.ulasakdeniz.auth.oauth1
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{ HttpResponse, StatusCodes }
@@ -10,7 +10,7 @@ import com.ulasakdeniz.base.UnitSpec
 
 import scala.concurrent.Future
 
-class OAuthDirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
+class OAuth1DirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
 
   private val _system: ActorSystem = ActorSystem("oauth-directive-test")
   private val _mat: ActorMaterializer = ActorMaterializer()
@@ -113,14 +113,14 @@ class OAuthDirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
   }
 
   trait OAuthDirectivesFixture {
-    val oauthParams = oauthParams("key", "secret", "uri", "uri", "uri")
+    val oauthParams = OAuthParams("key", "secret", "uri", "uri", "uri")
     val context = OAuthContext(_system, _mat, oauthParams)
-    object TestOAuth1 extends OAuth1(context)
-    val spiedOAuth1 = spy(TestOAuth1)
+    object TestOAuthClient extends OAuthClient(context)
+    val spiedOAuth1 = spy(TestOAuthClient)
 
-    object DirectiveTest extends OAuthDirectives {
+    object DirectiveTest extends OAuth1Directives {
       override val oauthContext: OAuthContext = context
-      override lazy val oauth           = spiedOAuth1
+      override private[oauth1] lazy val oauthClient = spiedOAuth1
     }
 
     val spiedOAuthDirective = spy(DirectiveTest)
