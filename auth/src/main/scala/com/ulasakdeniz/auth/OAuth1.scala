@@ -38,7 +38,7 @@ class OAuth1(context: OAuthContext) {
         val flow: Flow[ByteString, RequestTokenResponse, _] = Flow[ByteString].map(data => {
           val responseTokenOpt = parseResponseTokens(data)
           responseTokenOpt
-            .flatMap(tokens => requestToken2OauthResponse(tokens, hr))
+            .flatMap(tokens => requestTokenToOAuthResponse(tokens, hr))
             .getOrElse(RequestTokenFailed(hr))
         })
         runGraph(entitySource, flow)
@@ -57,12 +57,12 @@ class OAuth1(context: OAuthContext) {
         val entitySource = entity.dataBytes
         val flow: Flow[ByteString, AccessTokenResponse, _] = Flow[ByteString].map(data => {
           val responseTokenOpt = parseResponseTokens(data)
-          val oAuthResponseOpt = for {
+          val oauthResponseOpt = for {
             tokens: Map[String, String] <- responseTokenOpt
             _: String                   <- tokens.get(OAuth1Contract.token)
             _: String                   <- tokens.get(OAuth1Contract.token_secret)
           } yield AccessTokenSuccess(tokens)
-          oAuthResponseOpt.getOrElse(AuthenticationFailed(hr))
+          oauthResponseOpt.getOrElse(AuthenticationFailed(hr))
         })
         runGraph(entitySource, flow)
 
@@ -71,8 +71,8 @@ class OAuth1(context: OAuthContext) {
     }
   }
 
-  def authenticateRequest(request: HttpRequest, token: String, tokenSecret: String): HttpRequest = {
-    val params = AuthenticationHeader(
+  def authorizeRequest(request: HttpRequest, token: String, tokenSecret: String): HttpRequest = {
+    val params = AuthorizationHeader(
       request.method.value,
       request.uri,
       consumerKey,
@@ -95,7 +95,7 @@ class OAuth1(context: OAuthContext) {
 
   private[auth] def httpRequestForRequestToken: HttpRequest = {
     val httpMethod: HttpMethod = HttpMethods.POST
-    val authenticationHeader = AuthenticationHeader(httpMethod.value, requestTokenUri, consumerKey, consumerSecret)
+    val authenticationHeader = AuthorizationHeader(httpMethod.value, requestTokenUri, consumerKey, consumerSecret)
 
     HttpRequest(
       method = httpMethod,
@@ -115,8 +115,8 @@ class OAuth1(context: OAuthContext) {
         .toMap[String, String]
     }.toOption
 
-  private[auth] def requestToken2OauthResponse(tokens: Map[String, String],
-                                               hr: HttpResponse): Option[RequestTokenResponse] =
+  private[auth] def requestTokenToOAuthResponse(tokens: Map[String, String],
+                                                hr: HttpResponse): Option[RequestTokenResponse] =
     for {
       isCallbackConfirmed <- tokens.get(OAuth1Contract.callback_confirmed)
       oauthToken          <- tokens.get(OAuth1Contract.token)

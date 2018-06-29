@@ -20,9 +20,9 @@ abstract class Signer {
                         uri: String,
                         params: List[(String, String)],
                         consumerSecret: String,
-                        oAuthTokenSecret: Option[String] = None): String = {
+                        oauthTokenSecret: Option[String] = None): String = {
     val normalizedParams = normalizeEncodeParameters(params)
-    val signingKey       = s"${encode(consumerSecret)}&${oAuthTokenSecret.getOrElse("")}"
+    val signingKey       = s"${encode(consumerSecret)}&${oauthTokenSecret.getOrElse("")}"
     val baseString       = s"${httpMethod.toUpperCase}&${encode(uri)}&$normalizedParams"
     encode(hmac(signingKey, baseString))
   }

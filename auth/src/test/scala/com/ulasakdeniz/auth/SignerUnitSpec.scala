@@ -80,6 +80,6 @@ class SignerUnitSpec extends UnitSpec {
     val uri = "http://ulasakdeniz.com"
     val encodedUri = "http%3A%2F%2Fulasakdeniz.com"
     val consumerSecret = "Everyone has a secret"
-    val oAuthTokenSecret = baseString
+    val oauthTokenSecret = baseString
   }
 }

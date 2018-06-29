@@ -223,7 +223,7 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
       val paramMap    = Map("k" -> "v")
       val oauthHeader = Authorization(GenericHttpCredentials("OAuth", paramMap))
 
-      val params = AuthenticationHeader(
+      val params = AuthorizationHeader(
         request.method.value,
         request.uri,
         consumerKey,
@@ -233,7 +233,7 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
 
       doReturn(paramMap).when(spiedOAuth1Helper).headerParams(params)
 
-      val authenticatedRequest: HttpRequest = TestOAuth1.authenticateRequest(request, token, tokenSecret)
+      val authenticatedRequest: HttpRequest = TestOAuth1.authorizeRequest(request, token, tokenSecret)
       authenticatedRequest.headers.head shouldEqual oauthHeader
     }
   }
@@ -258,7 +258,7 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
 
     "prepare an HttpRequest for request token with given parameters" in new OAuth1UnitSpecFixture {
       val headerParams = Map.empty[String, String]
-      val authenticationHeader = AuthenticationHeader(
+      val authenticationHeader = AuthorizationHeader(
         "POST",
         requestTokenUri,
         consumerKey,
@@ -288,7 +288,7 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
     val authenticationUri = "authenticationUri"
     val accessTokenUri    = "accessTokenUri"
 
-    val oAuthParams = OAuthParams(
+    val oauthParams = OAuthParams(
       consumerKey,
       consumerSecret,
       requestTokenUri,
@@ -296,13 +296,13 @@ class OAuth1UnitSpec extends UnitSpec with BeforeAndAfterAll {
       authenticationUri
     )
 
-    val oAuthContext = OAuthContext(oAuthParams)
+    val oauthContext = OAuthContext(oauthParams)
 
     object TestOAuth1Helper extends AbstractOAuth1Helper
 
     val spiedOAuth1Helper = spy(TestOAuth1Helper)
 
-    object TestOAuth1 extends OAuth1(oAuthContext) {
+    object TestOAuth1 extends OAuth1(oauthContext) {
       override val http: HttpExt = spiedHttp
       override val helper    = spiedOAuth1Helper
     }

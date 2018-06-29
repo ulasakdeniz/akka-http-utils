@@ -9,7 +9,7 @@ private[auth] abstract class AbstractOAuth1Helper {
 
   val random = new Random(System.currentTimeMillis())
 
-  def headerParams(header: AuthenticationHeader): Map[String, String] = {
+  def headerParams(header: AuthorizationHeader): Map[String, String] = {
     def parameterMap = Map(
         consumer_key     -> header.consumerKey,
         nonce            -> generateNonce,
@@ -23,7 +23,7 @@ private[auth] abstract class AbstractOAuth1Helper {
                                                       header.uri.toString(),
                                                       params.toList,
                                                       header.consumerSecret,
-                                                      oAuthTokenSecret =
+                                                      oauthTokenSecret =
                                                         header.tokenOpt.map(t => t._2))
     params + (signature -> generatedSignature)
   }

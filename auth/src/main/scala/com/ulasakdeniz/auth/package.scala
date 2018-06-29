@@ -7,7 +7,7 @@ import akka.stream.ActorMaterializer
 package object auth {
   type Tokens = Map[String, String]
 
-  final case class AuthenticationHeader(
+  final case class AuthorizationHeader(
       httpMethod: String,
       uri: Uri,
       consumerKey: String,
