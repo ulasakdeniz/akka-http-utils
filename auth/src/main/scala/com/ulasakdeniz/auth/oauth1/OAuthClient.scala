@@ -40,7 +40,7 @@ private[oauth1] class OAuthClient(context: OAuthContext) {
 
       case hr =>
         hr.discardEntityBytes()
-        Future.successful(AuthenticationFailed(hr))
+        Future.successful(RequestTokenFailed(hr))
     }
   }
 
@@ -58,13 +58,13 @@ private[oauth1] class OAuthClient(context: OAuthContext) {
             _: String                   <- tokens.get(OAuth1Contract.token)
             _: String                   <- tokens.get(OAuth1Contract.token_secret)
           } yield AccessTokenSuccess(tokens)
-          oauthResponseOpt.getOrElse(AuthenticationFailed(hr))
+          oauthResponseOpt.getOrElse(AccessTokenFailed(hr))
         }
         runGraph(entitySource, flow)
 
       case hr =>
         hr.discardEntityBytes()
-        Future.successful(AuthenticationFailed(hr))
+        Future.successful(AccessTokenFailed(hr))
     }
   }
 
@@ -88,12 +88,12 @@ private[oauth1] class OAuthClient(context: OAuthContext) {
 
   private[oauth1] def httpRequestForRequestToken: HttpRequest = {
     val httpMethod: HttpMethod = HttpMethods.POST
-    val authenticationHeader = AuthorizationHeader(httpMethod.value, requestTokenUri, consumerKey, consumerSecret)
+    val authorizationHeader = AuthorizationHeader(httpMethod.value, requestTokenUri, consumerKey, consumerSecret)
 
     HttpRequest(
       method = httpMethod,
       uri = requestTokenUri,
-      headers = Seq(Authorization(GenericHttpCredentials("OAuth", helper.headerParams(authenticationHeader)))))
+      headers = Seq(Authorization(GenericHttpCredentials("OAuth", helper.headerParams(authorizationHeader)))))
   }
 
   private[oauth1] def parseResponseTokens(data: ByteString): Option[Map[String, String]] = Try {

@@ -27,7 +27,7 @@ class OAuth1DirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
 
       doReturn(future).when(spiedOAuth1).requestToken
       Get("/authenticate") ~> {
-        spiedOAuthDirective.authenticateOAuth {
+        spiedOAuthDirective.oauth {
           case RedirectionSuccess(hr, _) =>
             complete(hr)
           case _ => fail()
@@ -84,11 +84,11 @@ class OAuth1DirectivesUnitSpec extends UnitSpec with ScalatestRouteTest {
       val oauthResponse = AccessTokenSuccess(tokenMap)
 
       val response = HttpResponse(StatusCodes.BadRequest)
-      doReturn(Future.successful(AuthenticationFailed(response))).when(spiedOAuth1).accessToken(tokenMapWithVerifier)
+      doReturn(Future.successful(AccessTokenFailed(response))).when(spiedOAuth1).accessToken(tokenMapWithVerifier)
 
       Get(s"/callback?${OAuth1Contract.token}=$tokenValue&${OAuth1Contract.verifier}=$verifierValue") ~> {
         DirectiveTest.oauthCallbackAsync(tokenFun) {
-          case AuthenticationFailed(hr) =>
+          case AccessTokenFailed(hr) =>
             complete(hr)
           case _ => fail()
         }
